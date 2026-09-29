@@ -9,9 +9,10 @@ export class IntentParserService {
     const apiKey = process.env.GEMINI_API_KEY;
     if (apiKey) {
       this.genAI = new GoogleGenerativeAI(apiKey);
-      // Use gemini-2.5-flash or gemini-1.5-flash
+      // Use gemini-3.8-flash (latest Google Generative AI model)
+      const modelName = process.env.GEMINI_MODEL || 'gemini-3.8-flash';
       this.model = this.genAI.getGenerativeModel({
-        model: 'gemini-2.5-flash',
+        model: modelName,
         generationConfig: {
           responseMimeType: 'application/json',
           temperature: 0.1,
