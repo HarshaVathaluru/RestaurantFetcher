@@ -19,3 +19,5 @@ services:
         sync: false        # Optional
       - key: VITE_MAPBOX_TOKEN
         sync: false        # Set this in your Render dashboard — needed at BUILD time
+      - key: MAPBOX_TOKEN
+        sync: false        # Used by backend for live POI search
