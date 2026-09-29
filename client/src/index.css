@@ -1,0 +1,78 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    @apply bg-[#0b0e14] text-slate-100 font-sans selection:bg-amber-500 selection:text-black;
+  }
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: #0c0f14;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #222938;
+  border-radius: 9999px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #d97706;
+}
+
+/* ── Mapbox GL JS overrides ──────────────────────────────────────── */
+
+/* Custom HTML marker elements */
+.mapboxgl-marker { cursor: pointer; }
+.mapbox-place-marker, .user-gps-dot { background: transparent; border: none; }
+
+/* Popup dark theme */
+.mapboxgl-popup-content {
+  background: #141820 !important;
+  color: #f8fafc !important;
+  border-radius: 1rem !important;
+  border: 1px solid #222938 !important;
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.6) !important;
+  padding: 8px !important;
+  font-family: inherit !important;
+}
+.mapboxgl-popup-tip {
+  border-top-color: #141820 !important;
+  border-bottom-color: #141820 !important;
+}
+.mapboxgl-popup-close-button { display: none !important; }
+
+/* Attribution */
+.mapboxgl-ctrl-attrib {
+  background: rgba(11, 14, 20, 0.8) !important;
+  color: #64748b !important;
+  font-size: 9px !important;
+  border-radius: 6px !important;
+}
+.mapboxgl-ctrl-attrib a { color: #94a3b8 !important; }
+
+/* Navigation controls */
+.mapboxgl-ctrl-group {
+  background: #141820 !important;
+  border: 1px solid #222938 !important;
+  border-radius: 10px !important;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.5) !important;
+}
+.mapboxgl-ctrl-group button {
+  background: #141820 !important;
+  color: #e2e8f0 !important;
+  border-color: #222938 !important;
+}
+.mapboxgl-ctrl-group button:hover { background: #222938 !important; }
+.mapboxgl-ctrl-group button + button { border-top: 1px solid #222938 !important; }
+
+/* Mapbox logo */
+.mapboxgl-ctrl-logo { opacity: 0.3 !important; }
+

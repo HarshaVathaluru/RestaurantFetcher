@@ -1,0 +1,19 @@
+services:
+  # ─── UNIFIED FULL-STACK WEB SERVICE ────────────────────────────────────────
+  # Builds both backend & React frontend in one container. 
+  # Express serves the React UI at / and the API at /api.
+  - type: web
+    name: gourmetai
+    runtime: node
+    buildCommand: npm run build
+    startCommand: npm start
+    plan: free
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 10000
+      - key: GEMINI_API_KEY
+        sync: false        # Set this in your Render dashboard
+      - key: GOOGLE_PLACES_API_KEY
+        sync: false        # Optional
