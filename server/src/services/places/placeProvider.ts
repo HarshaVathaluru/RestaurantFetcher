@@ -957,44 +957,48 @@ export class CompositePlaceProvider implements PlaceProvider {
       }
     }
 
-    // 1. Honor explicit radius if user specified (e.g. 2 km, 3 km, 1 km)
+    // 1. Always query live OpenStreetMap Nominatim first for real-time results
+    let livePlaces: NormalizedPlace[] = [];
+    try {
+      livePlaces = await this.queryNominatimPlaces(coords, intent);
+    } catch (err) {
+      console.warn('Live Nominatim places query failed:', err);
+    }
+
+    // 2. Only use hardcoded verified places as a last-resort gap-fill
+    //    when live results are fewer than 5 AND user is near one of our known cities
     const searchRadiusKm = (intent.location?.radius && intent.location.radius > 0)
       ? (intent.location.radius / 1000)
       : (coords.isCityLevel
           ? Math.max(10, Math.min(20, (coords.radiusMeters / 1000)))
           : Math.max(4, Math.min(7, (coords.radiusMeters / 1000))));
 
-    const nearbyVerified = VERIFIED_REAL_PLACES
-      .map(place => ({
-        place,
-        distance: LocationResolver.calculateDistanceKm(
-          coords.latitude,
-          coords.longitude,
-          place.latitude,
-          place.longitude
-        ),
-      }))
-      .filter(item => item.distance <= searchRadiusKm);
-
-    // 2. If verified places are fewer than 5 (or for non-preconfigured locations), query live OpenStreetMap Nominatim API
-    let livePlaces: NormalizedPlace[] = [];
-    if (nearbyVerified.length < 5) {
-      try {
-        livePlaces = await this.queryNominatimPlaces(coords, intent);
-      } catch (err) {
-        console.warn('Live places query failed:', err);
-      }
-    }
-
-    // Merge verified and live places, prioritizing closest physical distance
     const mergedMap = new Map<string, NormalizedPlace>();
-    for (const item of nearbyVerified) {
-      mergedMap.set(item.place.name.toLowerCase(), { ...item.place, distance: item.distance });
-    }
+
+    // Always add live results first
     for (const p of livePlaces) {
-      const key = p.name.toLowerCase();
-      if (!mergedMap.has(key)) {
-        mergedMap.set(key, p);
+      mergedMap.set(p.name.toLowerCase(), p);
+    }
+
+    // Only supplement with hardcoded verified places if live results are thin
+    if (livePlaces.length < 5) {
+      const nearbyVerified = VERIFIED_REAL_PLACES
+        .map(place => ({
+          place,
+          distance: LocationResolver.calculateDistanceKm(
+            coords.latitude,
+            coords.longitude,
+            place.latitude,
+            place.longitude
+          ),
+        }))
+        .filter(item => item.distance <= searchRadiusKm);
+
+      for (const item of nearbyVerified) {
+        const key = item.place.name.toLowerCase();
+        if (!mergedMap.has(key)) {
+          mergedMap.set(key, { ...item.place, distance: item.distance });
+        }
       }
     }
 
@@ -1154,11 +1158,25 @@ export class CompositePlaceProvider implements PlaceProvider {
       const top = (coords.latitude + delta).toFixed(5);
       const bottom = (coords.latitude - delta).toFixed(5);
 
-      const categoryTerm = intent.category.includes('cafe') ? 'cafe' : (intent.category.includes('pub') ? 'pub' : 'restaurants');
-      let url = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(categoryTerm)}&viewbox=${left},${top},${right},${bottom}&bounded=1&format=json&addressdetails=1&limit=15`;
+      // Build a smarter search term from intent
+      let searchTerm = 'restaurants';
+      if (intent.foodItems?.length) {
+        searchTerm = intent.foodItems[0].name; // e.g. "biryani", "pizza"
+      } else if (intent.cuisine?.length) {
+        searchTerm = intent.cuisine[0] + ' restaurant';
+      } else if (intent.category.includes('cafe')) {
+        searchTerm = 'cafe';
+      } else if (intent.category.includes('pub') || intent.category.includes('bar')) {
+        searchTerm = 'pub bar';
+      }
+
+      const cityName = coords.displayName.split(',')[0].trim();
+
+      // Primary: bounding-box search
+      let url = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(searchTerm)}&viewbox=${left},${top},${right},${bottom}&bounded=1&format=json&addressdetails=1&limit=50`;
 
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 4500);
+      const timeoutId = setTimeout(() => controller.abort(), 6000);
 
       let res = await fetch(url, {
         headers: { 'User-Agent': 'GourmetAI-RestaurantDiscovery/1.0 (contact@gourmetai.local)' },
@@ -1167,17 +1185,24 @@ export class CompositePlaceProvider implements PlaceProvider {
 
       let data: any = res.ok ? await res.json() : [];
 
-      // Fallback: if viewbox returned 0, search with city context directly
-      if (!Array.isArray(data) || data.length === 0) {
-        const cityName = coords.displayName.split(',')[0].trim();
-        const fallbackUrl = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(categoryTerm + ' in ' + cityName)}&format=json&addressdetails=1&limit=15`;
-        const fbRes = await fetch(fallbackUrl, {
-          headers: { 'User-Agent': 'GourmetAI-RestaurantDiscovery/1.0 (contact@gourmetai.local)' },
-          signal: controller.signal,
-        });
-        if (fbRes.ok) {
-          data = await fbRes.json();
-        }
+      // Fallback: if viewbox returned < 3 results, search with city context directly
+      if (!Array.isArray(data) || data.length < 3) {
+        const fallbackUrl = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(searchTerm + ' in ' + cityName)}&format=json&addressdetails=1&limit=50`;
+        try {
+          const fbRes = await fetch(fallbackUrl, {
+            headers: { 'User-Agent': 'GourmetAI-RestaurantDiscovery/1.0 (contact@gourmetai.local)' },
+            signal: controller.signal,
+          });
+          if (fbRes.ok) {
+            const fbData = await fbRes.json();
+            // Merge both results
+            if (Array.isArray(fbData) && fbData.length > 0) {
+              const existingIds = new Set((Array.isArray(data) ? data : []).map((d: any) => d.osm_id));
+              const newOnes = fbData.filter((d: any) => !existingIds.has(d.osm_id));
+              data = [...(Array.isArray(data) ? data : []), ...newOnes];
+            }
+          }
+        } catch { /* silent */ }
       }
       clearTimeout(timeoutId);
 
