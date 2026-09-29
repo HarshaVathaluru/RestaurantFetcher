@@ -62,34 +62,38 @@ export const RestaurantGrid: React.FC<RestaurantGridProps> = ({
           {/* Active Intent tags */}
           {intent && (
             <div className="flex flex-wrap items-center gap-1.5 text-[11px]">
-              {intent.foodItems?.map((f, i) => (
-                <span key={`f-${i}`} className="px-2 py-0.5 rounded-md bg-amber-500/10 text-amber-300 font-bold border border-amber-500/25">
-                  🍛 {f.name}
-                </span>
-              ))}
-              {intent.cuisine.map((c, i) => (
+              {intent.foodItems?.map((f, i) => {
+                const name = typeof f === 'string' ? f : f?.name;
+                if (!name) return null;
+                return (
+                  <span key={`f-${i}`} className="px-2 py-0.5 rounded-md bg-amber-500/10 text-amber-300 font-bold border border-amber-500/25">
+                    🍛 {name}
+                  </span>
+                );
+              })}
+              {Array.isArray(intent.cuisine) && intent.cuisine.map((c, i) => (
                 <span key={`c-${i}`} className="px-2 py-0.5 rounded-md bg-slate-800 text-slate-300 capitalize">
                   {c}
                 </span>
               ))}
-              {intent.rating?.minimum && (
+              {intent.rating?.minimum ? (
                 <span className="px-2 py-0.5 rounded-md bg-amber-500/10 text-amber-300 font-medium">
                   Rating ≥ {intent.rating.minimum}★
                 </span>
-              )}
-              {intent.budget?.maximum && (
+              ) : null}
+              {intent.budget?.maximum ? (
                 <span className="px-2 py-0.5 rounded-md bg-emerald-500/10 text-emerald-300 font-medium">
                   Budget ≤ ₹{intent.budget.maximum}
                 </span>
-              )}
-              {intent.alcohol.required && (
+              ) : null}
+              {intent.alcohol?.required && (
                 <span className="px-2 py-0.5 rounded-md bg-purple-500/10 text-purple-300 font-medium">
                   Drinks & Bar
                 </span>
               )}
-              {intent.dietary?.map((d, i) => (
+              {Array.isArray(intent.dietary) && intent.dietary.map((d, i) => (
                 <span key={`d-${i}`} className="px-2 py-0.5 rounded-md bg-emerald-500/10 text-emerald-300 capitalize">
-                  {d}
+                  {typeof d === 'string' ? d : ''}
                 </span>
               ))}
             </div>

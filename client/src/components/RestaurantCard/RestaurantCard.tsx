@@ -59,13 +59,17 @@ export const RestaurantCard: React.FC<RestaurantCardProps> = ({
   // Determine searched food item or primary menu item
   const searchedName = searchedFoodItems?.[0]?.name;
   const matchedFoodItem = searchedName
-    ? place.foodItems?.find(f => f.name.toLowerCase().includes(searchedName.toLowerCase()) || searchedName.toLowerCase().includes(f.name.toLowerCase()))
+    ? place.foodItems?.find(f => {
+        const fName = typeof f === 'string' ? f : f?.name;
+        if (!fName) return false;
+        return fName.toLowerCase().includes(searchedName.toLowerCase()) || searchedName.toLowerCase().includes(fName.toLowerCase());
+      })
     : place.foodItems?.[0];
 
   const hasSearchedMatch = Boolean(searchedName && matchedFoodItem);
   const displayItem = matchedFoodItem || place.foodItems?.[0];
-  const primaryItemName = displayItem?.name || (hasSearchedMatch ? searchedName : 'House Specialty');
-  const primaryItemPrice = displayItem?.price || Math.round(place.averageCostPerPerson * 0.75) || 320;
+  const primaryItemName = (typeof displayItem === 'string' ? displayItem : displayItem?.name) || (hasSearchedMatch ? searchedName : 'House Specialty');
+  const primaryItemPrice = (typeof displayItem === 'object' && displayItem ? displayItem?.price : undefined) || Math.round((place.averageCostPerPerson || 350) * 0.75) || 320;
 
   // Multi-platform delivery options: Swiggy, Zomato, Magicpin
   const rawDeliveryList: Array<{
@@ -207,7 +211,7 @@ export const RestaurantCard: React.FC<RestaurantCardProps> = ({
           <span className="flex items-center gap-1 text-amber-400 font-bold">
             <Star className="w-3.5 h-3.5 fill-amber-400" /> {place.rating}
           </span>
-          <span className="text-slate-500">({place.reviewCount.toLocaleString()})</span>
+          <span className="text-slate-500">({(place.reviewCount ?? 0).toLocaleString()})</span>
         </div>
 
         <div className="flex items-center gap-3">
@@ -275,7 +279,7 @@ export const RestaurantCard: React.FC<RestaurantCardProps> = ({
             {place.priceEstimatedText}
           </span>
           <span className="px-2 py-0.5 rounded-md bg-slate-950/80 backdrop-blur-md capitalize text-slate-300">
-            {place.cuisine.slice(0, 2).join(' • ')}
+            {(place.cuisine || []).slice(0, 2).join(' • ')}
           </span>
         </div>
       </div>

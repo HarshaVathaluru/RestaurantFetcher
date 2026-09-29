@@ -386,48 +386,61 @@ export default function App() {
                       </button>
                     </div>
                     <div className="flex flex-wrap gap-2 text-sm font-semibold text-white">
-                      {searchResult.intent.foodItems?.map(f => (
-                        <span key={f.name} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-surface-dark border border-amber-500/30 text-amber-300 shadow-sm">
-                          <span>🍛</span> {f.name}
-                          <button type="button" onClick={() => handleRefine(`Remove ${f.name}`)} className="text-slate-500 hover:text-amber-400 ml-1 text-base cursor-pointer">×</button>
-                        </span>
-                      ))}
+                      {searchResult.intent.foodItems?.map((f, idx) => {
+                        const fName = typeof f === 'string' ? f : f?.name;
+                        if (!fName) return null;
+                        return (
+                          <span key={`f-${idx}-${fName}`} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-surface-dark border border-amber-500/30 text-amber-300 shadow-sm">
+                            <span>🍛</span> {fName}
+                            <button type="button" onClick={() => handleRefine(`Remove ${fName}`)} className="text-slate-500 hover:text-amber-400 ml-1 text-base cursor-pointer">×</button>
+                          </span>
+                        );
+                      })}
                       {searchResult.resolvedLocation?.displayName && (
                         <span className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-surface-dark border border-surface-border">
                           <span>📍</span> {searchResult.resolvedLocation.displayName}
                           <button type="button" onClick={() => handleRefine(`Remove location`)} className="text-slate-500 hover:text-amber-400 ml-1 text-base cursor-pointer">×</button>
                         </span>
                       )}
-                      {searchResult.intent.rating?.minimum && (
+                      {searchResult.intent.rating?.minimum ? (
                         <span className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-surface-dark border border-amber-500/30 text-amber-300 shadow-sm">
                           <span>⭐</span> {searchResult.intent.rating.minimum}+
                           <button type="button" onClick={() => handleRefine(`Remove rating limit`)} className="text-slate-500 hover:text-amber-400 ml-1 text-base cursor-pointer">×</button>
                         </span>
-                      )}
-                      {searchResult.intent.budget?.maximum && (
+                      ) : null}
+                      {searchResult.intent.budget?.maximum ? (
                         <span className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-surface-dark border border-amber-500/30 text-amber-300 shadow-sm">
                           <span>💰</span> Under ₹{searchResult.intent.budget.maximum}
                           <button type="button" onClick={() => handleRefine(`Remove budget limit`)} className="text-slate-500 hover:text-amber-400 ml-1 text-base cursor-pointer">×</button>
                         </span>
-                      )}
-                      {searchResult.intent.dietary?.map(d => (
-                        <span key={d} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-surface-dark border border-emerald-500/30 text-emerald-300 shadow-sm">
-                          <span>🥗</span> {d.charAt(0).toUpperCase() + d.slice(1)}
-                          <button type="button" onClick={() => handleRefine(`Remove ${d}`)} className="text-slate-500 hover:text-emerald-400 ml-1 text-base cursor-pointer">×</button>
-                        </span>
-                      ))}
-                      {searchResult.intent.atmosphere?.map(a => (
-                        <span key={a} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-surface-dark border border-purple-500/30 text-purple-300 shadow-sm">
-                          <span>✨</span> {a.charAt(0).toUpperCase() + a.slice(1)}
-                          <button type="button" onClick={() => handleRefine(`Remove ${a}`)} className="text-slate-500 hover:text-purple-400 ml-1 text-base cursor-pointer">×</button>
-                        </span>
-                      ))}
-                      {searchResult.intent.features?.map(f => (
-                        <span key={f} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-surface-dark border border-cyan-500/30 text-cyan-300 shadow-sm">
-                          <span>🌿</span> {f.charAt(0).toUpperCase() + f.slice(1)}
-                          <button type="button" onClick={() => handleRefine(`Remove ${f}`)} className="text-slate-500 hover:text-cyan-400 ml-1 text-base cursor-pointer">×</button>
-                        </span>
-                      ))}
+                      ) : null}
+                      {Array.isArray(searchResult.intent.dietary) && searchResult.intent.dietary.map((d, idx) => {
+                        if (typeof d !== 'string') return null;
+                        return (
+                          <span key={`d-${idx}`} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-surface-dark border border-emerald-500/30 text-emerald-300 shadow-sm">
+                            <span>🥗</span> {d.charAt(0).toUpperCase() + d.slice(1)}
+                            <button type="button" onClick={() => handleRefine(`Remove ${d}`)} className="text-slate-500 hover:text-emerald-400 ml-1 text-base cursor-pointer">×</button>
+                          </span>
+                        );
+                      })}
+                      {Array.isArray(searchResult.intent.atmosphere) && searchResult.intent.atmosphere.map((a, idx) => {
+                        if (typeof a !== 'string') return null;
+                        return (
+                          <span key={`a-${idx}`} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-surface-dark border border-purple-500/30 text-purple-300 shadow-sm">
+                            <span>✨</span> {a.charAt(0).toUpperCase() + a.slice(1)}
+                            <button type="button" onClick={() => handleRefine(`Remove ${a}`)} className="text-slate-500 hover:text-purple-400 ml-1 text-base cursor-pointer">×</button>
+                          </span>
+                        );
+                      })}
+                      {Array.isArray(searchResult.intent.features) && searchResult.intent.features.map((f, idx) => {
+                        if (typeof f !== 'string') return null;
+                        return (
+                          <span key={`feat-${idx}`} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-surface-dark border border-cyan-500/30 text-cyan-300 shadow-sm">
+                            <span>🌿</span> {f.charAt(0).toUpperCase() + f.slice(1)}
+                            <button type="button" onClick={() => handleRefine(`Remove ${f}`)} className="text-slate-500 hover:text-cyan-400 ml-1 text-base cursor-pointer">×</button>
+                          </span>
+                        );
+                      })}
                       {searchResult.intent.alcohol?.cocktails && (
                         <span className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-surface-dark border border-rose-500/30 text-rose-300 shadow-sm">
                           <span>🍸</span> Cocktails
