@@ -931,25 +931,41 @@ export const VERIFIED_REAL_PLACES: NormalizedPlace[] = [
 
 import { GooglePlacesProvider } from './googlePlacesProvider';
 import { MapboxPlacesProvider } from './mapboxPlacesProvider';
+import { FoursquarePlacesProvider } from './foursquarePlacesProvider';
 import { getDynamicFoodImages } from './foodImageGallery';
 
 export class CompositePlaceProvider implements PlaceProvider {
+  private foursquareProvider = new FoursquarePlacesProvider();
   private googleProvider = new GooglePlacesProvider();
   private mapboxProvider = new MapboxPlacesProvider();
 
   /**
    * Search real places based on resolved coordinates and structured intent.
    * Priority order:
-   * 1. Google Places API (if GOOGLE_PLACES_API_KEY is configured)
-   * 2. Mapbox Places POI Search (live places, phone numbers, hours using MAPBOX_TOKEN)
-   * 3. OpenStreetMap Nominatim with dynamic culinary image matching
-   * 4. Verified curated places (only if live results are sparse)
+   * 1. Foursquare Places API (Live real establishments, phone numbers, addresses, categories)
+   * 2. Google Places API (if GOOGLE_PLACES_API_KEY is configured)
+   * 3. Mapbox Places POI Search (live places, phone numbers, hours using MAPBOX_TOKEN)
+   * 4. OpenStreetMap Nominatim with dynamic culinary image matching
+   * 5. Verified curated places (only if live results are sparse)
    */
   async search(params: PlaceSearchParams): Promise<NormalizedPlace[]> {
     const { coords, intent } = params;
     let candidatePlaces: NormalizedPlace[] = [];
 
-    // 0. If Google Places API Key is present, query Google Places API
+    // 0. Primary: Foursquare Places API (Authentic real establishments, no Google billing needed)
+    if (this.foursquareProvider.isConfigured) {
+      try {
+        const fsqResults = await this.foursquareProvider.search(params);
+        if (fsqResults.length > 0) {
+          candidatePlaces = fsqResults;
+          return this.enrichPlaces(candidatePlaces, coords, intent);
+        }
+      } catch (err) {
+        console.warn('Foursquare Places API search failed, falling back:', err);
+      }
+    }
+
+    // 1. If Google Places API Key is present, query Google Places API
     if (this.googleProvider.isConfigured) {
       try {
         const googleResults = await this.googleProvider.search(params);
@@ -962,7 +978,7 @@ export class CompositePlaceProvider implements PlaceProvider {
       }
     }
 
-    // 1. Query Mapbox Places POI Search (100% Live POIs, real phone numbers, real addresses, no Google billing needed)
+    // 2. Query Mapbox Places POI Search (100% Live POIs, real phone numbers, real addresses, no Google billing needed)
     let livePlaces: NormalizedPlace[] = [];
     if (this.mapboxProvider.isConfigured) {
       try {
