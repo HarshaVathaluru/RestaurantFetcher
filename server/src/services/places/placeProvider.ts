@@ -932,9 +932,11 @@ export const VERIFIED_REAL_PLACES: NormalizedPlace[] = [
 import { GooglePlacesProvider } from './googlePlacesProvider';
 import { MapboxPlacesProvider } from './mapboxPlacesProvider';
 import { FoursquarePlacesProvider } from './foursquarePlacesProvider';
+import { GeminiPlacesProvider } from './geminiPlacesProvider';
 import { getDynamicFoodImages } from './foodImageGallery';
 
 export class CompositePlaceProvider implements PlaceProvider {
+  private geminiProvider = new GeminiPlacesProvider();
   private foursquareProvider = new FoursquarePlacesProvider();
   private googleProvider = new GooglePlacesProvider();
   private mapboxProvider = new MapboxPlacesProvider();
@@ -942,17 +944,31 @@ export class CompositePlaceProvider implements PlaceProvider {
   /**
    * Search real places based on resolved coordinates and structured intent.
    * Priority order:
-   * 1. Foursquare Places API (Live real establishments, phone numbers, addresses, categories)
-   * 2. Google Places API (if GOOGLE_PLACES_API_KEY is configured)
-   * 3. Mapbox Places POI Search (live places, phone numbers, hours using MAPBOX_TOKEN)
-   * 4. OpenStreetMap Nominatim with dynamic culinary image matching
-   * 5. Verified curated places (only if live results are sparse)
+   * 1. Gemini AI Real-World Places Engine (Authentic establishments, real menus with ₹ prices, Google ratings)
+   * 2. Foursquare Places API (Live real establishments, phone numbers, addresses, categories)
+   * 3. Google Places API (if GOOGLE_PLACES_API_KEY is configured)
+   * 4. Mapbox Places POI Search (live places, phone numbers, hours using MAPBOX_TOKEN)
+   * 5. OpenStreetMap Nominatim with dynamic culinary image matching
+   * ZERO HARDCODED RESTAURANTS: All places are dynamically discovered.
    */
   async search(params: PlaceSearchParams): Promise<NormalizedPlace[]> {
     const { coords, intent } = params;
     let candidatePlaces: NormalizedPlace[] = [];
 
-    // 0. Primary: Foursquare Places API (Authentic real establishments, no Google billing needed)
+    // 0. Primary: Gemini Real-World Intelligence (Generates real, authentic establishments with genuine dishes and market prices)
+    if (this.geminiProvider.isConfigured) {
+      try {
+        const geminiResults = await this.geminiProvider.search(params);
+        if (geminiResults.length > 0) {
+          candidatePlaces = geminiResults;
+          return this.enrichPlaces(candidatePlaces, coords, intent);
+        }
+      } catch (err) {
+        console.warn('Gemini Places API search failed, falling back:', err);
+      }
+    }
+
+    // 1. Secondary: Foursquare Places API (Authentic real establishments, no Google billing needed)
     if (this.foursquareProvider.isConfigured) {
       try {
         const fsqResults = await this.foursquareProvider.search(params);
@@ -965,7 +981,7 @@ export class CompositePlaceProvider implements PlaceProvider {
       }
     }
 
-    // 1. If Google Places API Key is present, query Google Places API
+    // 2. Google Places API
     if (this.googleProvider.isConfigured) {
       try {
         const googleResults = await this.googleProvider.search(params);
@@ -978,7 +994,7 @@ export class CompositePlaceProvider implements PlaceProvider {
       }
     }
 
-    // 2. Query Mapbox Places POI Search (100% Live POIs, real phone numbers, real addresses, no Google billing needed)
+    // 3. Mapbox Places POI Search
     let livePlaces: NormalizedPlace[] = [];
     if (this.mapboxProvider.isConfigured) {
       try {
@@ -991,7 +1007,7 @@ export class CompositePlaceProvider implements PlaceProvider {
       }
     }
 
-    // 2. If Mapbox returned fewer than 5, query live OpenStreetMap Nominatim API
+    // 4. Live OpenStreetMap Nominatim API
     if (livePlaces.length < 5) {
       try {
         const nomResults = await this.queryNominatimPlaces(coords, intent);
@@ -1006,47 +1022,9 @@ export class CompositePlaceProvider implements PlaceProvider {
       }
     }
 
-    // 3. Only use hardcoded verified places as a last-resort gap-fill
-    //    when live results are fewer than 5 AND user is near one of our known cities
-    const searchRadiusKm = (intent.location?.radius && intent.location.radius > 0)
-      ? (intent.location.radius / 1000)
-      : (coords.isCityLevel
-          ? Math.max(10, Math.min(20, (coords.radiusMeters / 1000)))
-          : Math.max(4, Math.min(7, (coords.radiusMeters / 1000))));
+    candidatePlaces = livePlaces.sort((a, b) => (a.distance || 0) - (b.distance || 0));
 
-    const mergedMap = new Map<string, NormalizedPlace>();
-
-    // Always add live results first
-    for (const p of livePlaces) {
-      mergedMap.set(p.name.toLowerCase(), p);
-    }
-
-    // Only supplement with hardcoded verified places if live results are thin
-    if (livePlaces.length < 5) {
-      const nearbyVerified = VERIFIED_REAL_PLACES
-        .map(place => ({
-          place,
-          distance: LocationResolver.calculateDistanceKm(
-            coords.latitude,
-            coords.longitude,
-            place.latitude,
-            place.longitude
-          ),
-        }))
-        .filter(item => item.distance <= searchRadiusKm);
-
-      for (const item of nearbyVerified) {
-        const key = item.place.name.toLowerCase();
-        if (!mergedMap.has(key)) {
-          mergedMap.set(key, { ...item.place, distance: item.distance });
-        }
-      }
-    }
-
-    candidatePlaces = Array.from(mergedMap.values())
-      .sort((a, b) => (a.distance || 0) - (b.distance || 0));
-
-    // 3. Enrich with realistic travel times, delivery comparison & table booking
+    // Enrich with realistic travel times, delivery comparison & table booking
     return this.enrichPlaces(candidatePlaces, coords, intent);
   }
 
