@@ -17,3 +17,5 @@ services:
         sync: false        # Set this in your Render dashboard
       - key: GOOGLE_PLACES_API_KEY
         sync: false        # Optional
+      - key: VITE_MAPBOX_TOKEN
+        sync: false        # Set this in your Render dashboard — needed at BUILD time
