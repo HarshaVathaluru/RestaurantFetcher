@@ -5,6 +5,8 @@ import {
   Navigation, MapPin, Compass, Car, Footprints, X, Route, Loader2,
 } from 'lucide-react';
 
+const MAPBOX_TOKEN = (import.meta.env.VITE_MAPBOX_TOKEN as string) || '';
+
 // ── Turn-by-turn maneuver icon helper ──────────────────────────────────────
 const getManeuverIcon = (instruction: string, stepName?: string): string => {
   const combined = `${instruction} ${stepName || ''}`.toLowerCase();
@@ -213,10 +215,15 @@ export const MapView: React.FC<MapViewProps> = ({
       attributionControl: false,
     });
 
-    // Dark-themed tiles: CartoDB Dark Matter (100% free, reliable, no token needed)
-    L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+    // Use official Mapbox Dark-v11 HD tiles when token is available, with CartoDB fallback
+    const tileUrl = (MAPBOX_TOKEN && MAPBOX_TOKEN.startsWith('pk.'))
+      ? `https://api.mapbox.com/styles/v1/mapbox/dark-v11/tiles/256/{z}/{x}/{y}@2x?access_token=${MAPBOX_TOKEN}`
+      : 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png';
+
+    L.tileLayer(tileUrl, {
       subdomains: 'abcd',
       maxZoom: 20,
+      attribution: '&copy; Mapbox &copy; OpenStreetMap',
     }).addTo(map);
 
     // Zoom controls at bottom right
