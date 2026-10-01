@@ -1044,83 +1044,9 @@ export class CompositePlaceProvider implements PlaceProvider {
         : place.foodItems?.[0];
       const baseItemPrice = matchedItem?.price || Math.round(place.averageCostPerPerson * 0.75) || 280;
 
-      // Delivery apps: Swiggy, Zomato, Magicpin
-      const hasExplicitDeliveryLinks = Boolean(place.links?.swiggy || place.links?.zomato || place.links?.magicpin);
-      const isDineInExclusive = place.features.includes('reservation required') ||
-                                (place.priceLevel >= 4 && place.categories.includes('fine dining')) ||
-                                place.name.toLowerCase().includes('skyview') ||
-                                place.name.toLowerCase().includes('bukhara') ||
-                                place.name.toLowerCase().includes('jewel of nizam');
+      // Online delivery comparison: ONLY present if genuine, verified online pricing exists
+      const deliveryComparison: NormalizedPlace['deliveryComparison'] = place.deliveryComparison;
 
-      const offersDelivery = !isDineInExclusive && (hasExplicitDeliveryLinks || place.priceLevel <= 3);
-      let deliveryComparison: NormalizedPlace['deliveryComparison'] = undefined;
-
-      if (offersDelivery) {
-        // Swiggy
-        const swiggyPrice = Math.max(80, Math.round(baseItemPrice * 0.95));
-        const swiggyDelivery = 30;
-        const swiggyDiscount = baseItemPrice >= 250 ? 100 : 40;
-        const swiggyTotal = Math.max(60, swiggyPrice + swiggyDelivery - swiggyDiscount);
-        const swiggyTime = `${Math.max(20, Math.round(distance * 4 + 15))}–${Math.max(30, Math.round(distance * 4 + 25))} min`;
-
-        // Zomato
-        const zomatoPrice = Math.max(80, Math.round(baseItemPrice * 0.98));
-        const zomatoDelivery = 25;
-        const zomatoDiscount = baseItemPrice >= 250 ? 80 : 30;
-        const zomatoTotal = Math.max(60, zomatoPrice + zomatoDelivery - zomatoDiscount);
-        const zomatoTime = `${Math.max(18, Math.round(distance * 3.5 + 12))}–${Math.max(28, Math.round(distance * 3.5 + 22))} min`;
-
-        // Magicpin (Known for 20-30% voucher savings & highest cashback across Indian cities)
-        const magicpinPrice = baseItemPrice;
-        const magicpinDelivery = 20;
-        const magicpinDiscount = baseItemPrice >= 250 ? 120 : 50;
-        const magicpinTotal = Math.max(50, magicpinPrice + magicpinDelivery - magicpinDiscount);
-        const magicpinTime = `${Math.max(20, Math.round(distance * 4 + 12))}–${Math.max(30, Math.round(distance * 4 + 22))} min`;
-
-        const minEstimate = Math.min(swiggyTotal, zomatoTotal, magicpinTotal);
-        const bestPlat = magicpinTotal === minEstimate ? 'magicpin' : (swiggyTotal <= zomatoTotal ? 'swiggy' : 'zomato');
-
-        deliveryComparison = {
-          swiggy: {
-            platform: 'swiggy',
-            platformName: 'Swiggy',
-            itemPrice: swiggyPrice,
-            deliveryFee: swiggyDelivery,
-            discount: swiggyDiscount,
-            finalEstimate: swiggyTotal,
-            deliveryTime: swiggyTime,
-            offerText: 'FLAT ₹100 OFF | Code GOURMET100',
-            url: place.links?.swiggy || `https://www.swiggy.com/search?query=${encodeURIComponent(place.name)}`,
-            isBestPrice: swiggyTotal === minEstimate,
-          },
-          zomato: {
-            platform: 'zomato',
-            platformName: 'Zomato',
-            itemPrice: zomatoPrice,
-            deliveryFee: zomatoDelivery,
-            discount: zomatoDiscount,
-            finalEstimate: zomatoTotal,
-            deliveryTime: zomatoTime,
-            offerText: '₹80 OFF with Gold Delivery',
-            url: place.links?.zomato || `https://www.zomato.com/search?q=${encodeURIComponent(place.name)}`,
-            isBestPrice: zomatoTotal === minEstimate,
-          },
-          magicpin: {
-            platform: 'magicpin',
-            platformName: 'Magicpin',
-            itemPrice: magicpinPrice,
-            deliveryFee: magicpinDelivery,
-            discount: magicpinDiscount,
-            finalEstimate: magicpinTotal,
-            deliveryTime: magicpinTime,
-            offerText: 'UP TO 30% OFF | Magic Vouchers',
-            url: place.links?.magicpin || `https://magicpin.in/search/?q=${encodeURIComponent(place.name)}`,
-            isBestPrice: magicpinTotal === minEstimate,
-          },
-          bestPlatform: bestPlat,
-          priceDifferenceText: `${bestPlat.toUpperCase()} is best price (₹${minEstimate})`,
-        };
-      }
 
       // Table Booking conditional availability
       const offersBooking = place.tableBooking?.available !== undefined

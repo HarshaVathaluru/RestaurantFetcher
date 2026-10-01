@@ -1,7 +1,7 @@
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import { NormalizedPlace } from '../../models/place';
 import { PlaceProvider, PlaceSearchParams } from './placeProvider';
-import { getDynamicFoodImages } from './foodImageGallery';
+import { PhotoService } from './photoService';
 
 export class GeminiPlacesProvider implements PlaceProvider {
   private genAI: GoogleGenerativeAI | null = null;
@@ -33,22 +33,29 @@ export class GeminiPlacesProvider implements PlaceProvider {
     const places: NormalizedPlace[] = [];
 
     try {
-      const locationName = coords.displayName || (coords.isCityLevel ? 'Hyderabad' : 'the area');
+      // Prioritize actual location name from reverse geocoding or coordinates, never forcing 'Hyderabad'
+      const locationName = coords.displayName || `coordinates (${coords.latitude.toFixed(4)}, ${coords.longitude.toFixed(4)})`;
       const queryItem = intent.foodItems?.[0]?.name || intent.cuisine?.[0] || intent.category?.[0] || 'restaurants';
 
-      const prompt = `You are an expert real-world restaurant intelligence engine with accurate knowledge of physical establishments worldwide, similar to Google Maps.
-User search query: "${queryItem}" in or around "${locationName}".
-Center coordinates: latitude ${coords.latitude}, longitude ${coords.longitude}.
+      // 1. Concurrently fetch authentic Wikipedia food photography for queried dish
+      const wikiPhotosPromise = PhotoService.fetchWikiDishPhotos(queryItem);
 
-Return a JSON array of up to 8 REAL, EXISTING, currently operating restaurants that genuinely match this query.
+      // 2. Query Gemini for real physical establishments near user's genuine GPS coordinates
+      const prompt = `You are an expert real-world restaurant intelligence engine with accurate knowledge of physical establishments worldwide, similar to Google Maps.
+User search query: "${queryItem}".
+Target Location: "${locationName}".
+Target GPS Center: latitude ${coords.latitude}, longitude ${coords.longitude}.
+
+Return a JSON array of up to 8 REAL, EXISTING, currently operating restaurants that genuinely exist in this exact locality around coordinates ${coords.latitude}, ${coords.longitude}.
 STRICT INSTRUCTIONS:
-1. ONLY return REAL, famous or popular physical establishments that actually exist. DO NOT invent fake places.
-2. Provide ACCURATE GPS coordinates (latitude, longitude) close to the specified area.
-3. Provide REAL street addresses with area/locality and landmark.
-4. Provide REALISTIC authentic menu items with accurate current market prices in INR (₹).
-5. Provide real Google ratings (e.g. 4.1 to 4.7) and realistic review counts (e.g. 1500 to 45000).
-6. Provide real phone numbers and accurate opening hours.
-7. Categorize their authentic cuisine and ambiance accurately.
+1. ONLY return REAL, famous or popular physical establishments that actually exist near these coordinates. DO NOT invent fake places.
+2. DO NOT return Hyderabad places unless the coordinates are actually in Hyderabad. Respect the target GPS center strictly!
+3. Provide ACCURATE GPS coordinates (latitude, longitude) close to the specified coordinates.
+4. Provide REAL street addresses with area/locality and landmark.
+5. Provide REALISTIC authentic menu items with accurate current market prices in INR (₹).
+6. Provide real Google ratings (e.g. 4.1 to 4.7) and realistic review counts (e.g. 1500 to 45000).
+7. Provide real phone numbers and accurate opening hours.
+8. Categorize their authentic cuisine and ambiance accurately.
 
 JSON Format:
 [
@@ -56,14 +63,14 @@ JSON Format:
     "id": "gemini_unique_id",
     "name": "Exact Real Restaurant Name",
     "address": "Full real address with landmark",
-    "latitude": 17.4418,
-    "longitude": 78.4873,
+    "latitude": ${coords.latitude},
+    "longitude": ${coords.longitude},
     "rating": 4.4,
     "reviewCount": 18200,
     "priceLevel": 2,
     "averageCostPerPerson": 350,
     "priceEstimatedText": "₹350 per person",
-    "cuisines": ["Biryani", "Hyderabadi", "North Indian"],
+    "cuisines": ["Biryani", "South Indian"],
     "phone": "+91 40 2763 4490",
     "website": "https://...",
     "openingHours": "11:00 AM – 11:30 PM",
@@ -82,10 +89,13 @@ JSON Format:
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 12000);
 
-      const result = await this.model.generateContent(prompt, { signal: controller.signal });
+      const [geminiResult, wikiPhotos] = await Promise.all([
+        this.model.generateContent(prompt, { signal: controller.signal }),
+        wikiPhotosPromise,
+      ]);
       clearTimeout(timeoutId);
 
-      const text = result.response.text();
+      const text = geminiResult.response.text();
       const rawPlaces = JSON.parse(text);
 
       if (!Array.isArray(rawPlaces)) return [];
@@ -100,9 +110,14 @@ JSON Format:
         // Distance in km from user coordinates
         const distance = Math.round(this.calculateDistanceKm(coords.latitude, coords.longitude, lat, lon) * 10) / 10;
 
-        // Dynamic dish-matched photography
+        // Dynamic non-duplicating dish photography combining Wikimedia Commons + curated pool
         const cuisines = Array.isArray(p.cuisines) && p.cuisines.length > 0 ? p.cuisines : ['Multi-Cuisine'];
-        const { coverImage, gallery } = getDynamicFoodImages(p.name, cuisines, intent.foodItems?.[0]?.name || queryItem);
+        const { coverImage, gallery } = PhotoService.getPhotos(
+          p.name,
+          cuisines,
+          intent.foodItems?.[0]?.name || queryItem,
+          wikiPhotos
+        );
 
         const safePrice = Number(p.averageCostPerPerson) || 350;
         const foodItems = Array.isArray(p.foodItems) ? p.foodItems.map((f: any) => ({
@@ -143,7 +158,7 @@ JSON Format:
           phone: p.phone,
           website: p.website,
           links: {
-            googleMaps: `https://maps.google.com/?q=${encodeURIComponent(p.name + ' ' + p.address)}`,
+            googleMaps: `https://maps.google.com/?q=${encodeURIComponent(p.name + ' ' + (p.address || ''))}`,
             swiggy: `https://www.swiggy.com/search?query=${encodeURIComponent(p.name)}`,
             zomato: `https://www.zomato.com/search?q=${encodeURIComponent(p.name)}`,
             website: p.website,

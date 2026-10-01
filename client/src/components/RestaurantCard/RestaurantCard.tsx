@@ -16,6 +16,7 @@ import {
   ChevronUp,
   Tag,
   Zap,
+  ExternalLink,
 } from 'lucide-react';
 import { NormalizedPlace } from '../../types';
 
@@ -89,67 +90,72 @@ export const RestaurantCard: React.FC<RestaurantCardProps> = ({
     isBestPrice?: boolean;
   }> = [];
 
-  // 1. Swiggy
-  if (place.deliveryComparison?.swiggy || place.links?.swiggy) {
-    const defaultEstimate = Math.max(60, Math.round(primaryItemPrice * 0.95) + 30 - (primaryItemPrice >= 250 ? 100 : 40));
-    rawDeliveryList.push({
-      platform: 'swiggy',
-      name: 'Swiggy',
-      emoji: '🛵',
-      bgClass: 'bg-orange-500/10 border-orange-500/40 ring-orange-500/20',
-      btnClass: 'bg-orange-600 hover:bg-orange-500',
-      textClass: 'text-orange-400',
-      itemPrice: place.deliveryComparison?.swiggy?.itemPrice || Math.max(90, Math.round(primaryItemPrice * 0.95)),
-      deliveryFee: place.deliveryComparison?.swiggy?.deliveryFee ?? 30,
-      discount: place.deliveryComparison?.swiggy?.discount ?? (primaryItemPrice >= 250 ? 100 : 40),
-      finalEstimate: place.deliveryComparison?.swiggy?.finalEstimate || defaultEstimate,
-      deliveryTime: place.deliveryComparison?.swiggy?.deliveryTime || `${driveTime + 18}–${driveTime + 28} min`,
-      offerText: place.deliveryComparison?.swiggy?.offerText || 'FLAT ₹100 OFF | Code GOURMET100',
-      url: place.deliveryComparison?.swiggy?.url || place.links?.swiggy || `https://www.swiggy.com/search?query=${encodeURIComponent(place.name)}`,
-    });
+  // Only populate if genuine verified online pricing exists in place.deliveryComparison
+  const hasGenuineOnlinePricing = Boolean(
+    place.deliveryComparison &&
+    (place.deliveryComparison.swiggy?.itemPrice || place.deliveryComparison.zomato?.itemPrice || place.deliveryComparison.magicpin?.itemPrice)
+  );
+
+  if (hasGenuineOnlinePricing && place.deliveryComparison) {
+    if (place.deliveryComparison.swiggy?.itemPrice) {
+      const s = place.deliveryComparison.swiggy;
+      rawDeliveryList.push({
+        platform: 'swiggy',
+        name: 'Swiggy',
+        emoji: '🛵',
+        bgClass: 'bg-orange-500/10 border-orange-500/40 ring-orange-500/20',
+        btnClass: 'bg-orange-600 hover:bg-orange-500',
+        textClass: 'text-orange-400',
+        itemPrice: s.itemPrice,
+        deliveryFee: s.deliveryFee,
+        discount: s.discount,
+        finalEstimate: s.finalEstimate,
+        deliveryTime: s.deliveryTime,
+        offerText: s.offerText || '',
+        url: s.url || place.links?.swiggy || `https://www.swiggy.com/search?query=${encodeURIComponent(place.name)}`,
+      });
+    }
+
+    if (place.deliveryComparison.zomato?.itemPrice) {
+      const z = place.deliveryComparison.zomato;
+      rawDeliveryList.push({
+        platform: 'zomato',
+        name: 'Zomato',
+        emoji: '🍽',
+        bgClass: 'bg-red-500/10 border-red-500/40 ring-red-500/20',
+        btnClass: 'bg-red-600 hover:bg-red-500',
+        textClass: 'text-red-400',
+        itemPrice: z.itemPrice,
+        deliveryFee: z.deliveryFee,
+        discount: z.discount,
+        finalEstimate: z.finalEstimate,
+        deliveryTime: z.deliveryTime,
+        offerText: z.offerText || '',
+        url: z.url || place.links?.zomato || `https://www.zomato.com/search?q=${encodeURIComponent(place.name)}`,
+      });
+    }
+
+    if (place.deliveryComparison.magicpin?.itemPrice) {
+      const m = place.deliveryComparison.magicpin;
+      rawDeliveryList.push({
+        platform: 'magicpin',
+        name: 'Magicpin',
+        emoji: '✨',
+        bgClass: 'bg-blue-500/10 border-blue-500/40 ring-blue-500/20',
+        btnClass: 'bg-blue-600 hover:bg-blue-500',
+        textClass: 'text-blue-400',
+        itemPrice: m.itemPrice,
+        deliveryFee: m.deliveryFee,
+        discount: m.discount,
+        finalEstimate: m.finalEstimate,
+        deliveryTime: m.deliveryTime,
+        offerText: m.offerText || '',
+        url: m.url || place.links?.magicpin || `https://magicpin.in/search/?q=${encodeURIComponent(place.name)}`,
+      });
+    }
   }
 
-  // 2. Zomato
-  if (place.deliveryComparison?.zomato || place.links?.zomato) {
-    const defaultEstimate = Math.max(60, Math.round(primaryItemPrice * 0.98) + 25 - (primaryItemPrice >= 250 ? 80 : 30));
-    rawDeliveryList.push({
-      platform: 'zomato',
-      name: 'Zomato',
-      emoji: '🍽',
-      bgClass: 'bg-red-500/10 border-red-500/40 ring-red-500/20',
-      btnClass: 'bg-red-600 hover:bg-red-500',
-      textClass: 'text-red-400',
-      itemPrice: place.deliveryComparison?.zomato?.itemPrice || Math.max(90, Math.round(primaryItemPrice * 0.98)),
-      deliveryFee: place.deliveryComparison?.zomato?.deliveryFee ?? 25,
-      discount: place.deliveryComparison?.zomato?.discount ?? (primaryItemPrice >= 250 ? 80 : 30),
-      finalEstimate: place.deliveryComparison?.zomato?.finalEstimate || defaultEstimate,
-      deliveryTime: place.deliveryComparison?.zomato?.deliveryTime || `${driveTime + 15}–${driveTime + 25} min`,
-      offerText: place.deliveryComparison?.zomato?.offerText || '₹80 OFF with Gold Delivery',
-      url: place.deliveryComparison?.zomato?.url || place.links?.zomato || `https://www.zomato.com/search?q=${encodeURIComponent(place.name)}`,
-    });
-  }
-
-  // 3. Magicpin (Known for 20-30% food vouchers and highest savings)
-  if (place.deliveryComparison?.magicpin || place.links?.magicpin) {
-    const defaultEstimate = Math.max(50, primaryItemPrice + 20 - (primaryItemPrice >= 250 ? 120 : 50));
-    rawDeliveryList.push({
-      platform: 'magicpin',
-      name: 'Magicpin',
-      emoji: '✨',
-      bgClass: 'bg-blue-500/10 border-blue-500/40 ring-blue-500/20',
-      btnClass: 'bg-blue-600 hover:bg-blue-500',
-      textClass: 'text-blue-400',
-      itemPrice: place.deliveryComparison?.magicpin?.itemPrice || primaryItemPrice,
-      deliveryFee: place.deliveryComparison?.magicpin?.deliveryFee ?? 20,
-      discount: place.deliveryComparison?.magicpin?.discount ?? (primaryItemPrice >= 250 ? 120 : 50),
-      finalEstimate: place.deliveryComparison?.magicpin?.finalEstimate || defaultEstimate,
-      deliveryTime: place.deliveryComparison?.magicpin?.deliveryTime || `${driveTime + 16}–${driveTime + 26} min`,
-      offerText: place.deliveryComparison?.magicpin?.offerText || 'UP TO 30% OFF | Magic Vouchers',
-      url: place.deliveryComparison?.magicpin?.url || place.links?.magicpin || `https://magicpin.in/search/?q=${encodeURIComponent(place.name)}`,
-    });
-  }
-
-  // Calculate lowest estimate
+  // Calculate lowest estimate if genuine prices exist
   const lowestEstimate = rawDeliveryList.length > 0
     ? Math.min(...rawDeliveryList.map(o => o.finalEstimate))
     : 0;
@@ -166,8 +172,8 @@ export const RestaurantCard: React.FC<RestaurantCardProps> = ({
   const bestOption = deliveryOptions.find(o => o.isBestPrice) || deliveryOptions[0];
   const maxSavings = highestEstimate - lowestEstimate;
 
-  // Strict conditional availability rules
-  const canOrderOnline = deliveryOptions.length > 0;
+  // Strict conditional availability: only order online if genuine verified prices are present
+  const canOrderOnline = hasGenuineOnlinePricing && deliveryOptions.length > 0;
   const canBookTable = Boolean(place.tableBooking && place.tableBooking.available);
 
   // Section expansion state: default to whichever is available
@@ -365,18 +371,58 @@ export const RestaurantCard: React.FC<RestaurantCardProps> = ({
           )}
 
           {/* 6. STRICT CONDITIONAL ORDERING AND TABLE BOOKING */}
-          {!canOrderOnline && !canBookTable ? (
-            /* CASE 1: Neither available -> Clean Dine-in Only notice */
-            <div className="p-3.5 rounded-2xl bg-surface-dark/80 border border-surface-border mb-4 flex items-center justify-between text-xs">
-              <span className="text-slate-200 font-bold flex items-center gap-1.5">
-                🍽 Dine-In & Walk-In Only
-              </span>
-              <span className="text-[11px] text-slate-400">
-                Walk-ins welcome • No pre-booking needed
-              </span>
+          {!canOrderOnline && (
+            <div className="p-3.5 rounded-2xl bg-surface-dark/80 border border-surface-border mb-4 space-y-2.5">
+              <div className="flex items-center justify-between text-xs">
+                <span className="text-slate-200 font-bold flex items-center gap-1.5">
+                  <UtensilsCrossed className="w-3.5 h-3.5 text-amber-400" />
+                  Dine-In Menu Price
+                </span>
+                <span className="text-amber-300 font-black text-sm">
+                  {primaryItemPrice ? `₹${primaryItemPrice}` : place.priceEstimatedText}
+                </span>
+              </div>
+              {(place.links?.swiggy || place.links?.zomato) && (
+                <div className="pt-2 border-t border-slate-800/80">
+                  <div className="text-[10px] text-slate-400 mb-2 flex items-center justify-between">
+                    <span>Live Online Delivery</span>
+                    <span className="text-[9px] text-slate-500">View real-time prices on app</span>
+                  </div>
+                  <div className="grid grid-cols-2 gap-2">
+                    {place.links?.swiggy && (
+                      <a
+                        href={place.links.swiggy}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        onClick={(e) => e.stopPropagation()}
+                        className="py-2 px-2.5 rounded-xl bg-orange-500/10 hover:bg-orange-500/20 border border-orange-500/30 text-orange-400 hover:text-orange-300 text-xs font-bold flex items-center justify-center gap-1.5 transition-colors shadow-sm"
+                      >
+                        <Bike className="w-3.5 h-3.5" />
+                        <span>Swiggy</span>
+                        <ExternalLink className="w-3 h-3 text-orange-400/70" />
+                      </a>
+                    )}
+                    {place.links?.zomato && (
+                      <a
+                        href={place.links.zomato}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        onClick={(e) => e.stopPropagation()}
+                        className="py-2 px-2.5 rounded-xl bg-red-500/10 hover:bg-red-500/20 border border-red-500/30 text-red-400 hover:text-red-300 text-xs font-bold flex items-center justify-center gap-1.5 transition-colors shadow-sm"
+                      >
+                        <UtensilsCrossed className="w-3.5 h-3.5" />
+                        <span>Zomato</span>
+                        <ExternalLink className="w-3 h-3 text-red-400/70" />
+                      </a>
+                    )}
+                  </div>
+                </div>
+              )}
             </div>
-          ) : (
-            /* CASE 2, 3, 4: Either or both available */
+          )}
+
+          {/* TABLE BOOKING / VERIFIED ONLINE COMPARISON */}
+          {(canOrderOnline || canBookTable) && (
             <div className="rounded-2xl border border-surface-border bg-slate-950/60 overflow-hidden mb-4">
               {/* TAB SELECTOR: ONLY SHOWN IF BOTH CAN ORDER AND CAN BOOK TABLE */}
               {canOrderOnline && canBookTable ? (

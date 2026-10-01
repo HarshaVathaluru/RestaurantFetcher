@@ -31,10 +31,10 @@ export default function App() {
 
   // B. searchLocation: The target area user is searching in (dynamically detected from real-time GPS or user chosen)
   const [searchLocation, setSearchLocation] = useState<SearchLocation>({
-    name: 'Live GPS Location',
+    name: 'Current GPS Location',
     latitude: 17.385044,
     longitude: 78.486671,
-    source: 'user-selected',
+    source: 'detected',
   });
 
   const [isLocationModalOpen, setIsLocationModalOpen] = useState(false);
@@ -79,18 +79,26 @@ export default function App() {
           source: 'gps',
         });
 
+        // Immediately update search coordinates to user's real GPS position
+        setSearchLocation(prev => ({
+          name: prev.source === 'user-selected' ? prev.name : 'Current GPS Location',
+          latitude: prev.source === 'user-selected' ? prev.latitude : lat,
+          longitude: prev.source === 'user-selected' ? prev.longitude : lon,
+          source: prev.source,
+        }));
+
         // Reverse geocode once for default search area
         if (!isInitialGeocodeDone) {
           isInitialGeocodeDone = true;
           try {
             const loc = await api.reverseGeocode(lat, lon);
             if (loc?.displayName) {
-              setSearchLocation({
-                name: loc.displayName,
-                latitude: lat,
-                longitude: lon,
-                source: 'detected',
-              });
+              setSearchLocation(prev => ({
+                name: prev.source === 'user-selected' ? prev.name : loc.displayName,
+                latitude: prev.source === 'user-selected' ? prev.latitude : lat,
+                longitude: prev.source === 'user-selected' ? prev.longitude : lon,
+                source: prev.source,
+              }));
             }
           } catch (err) {
             console.warn('Real-time location reverse geocode failed:', err);
@@ -166,14 +174,14 @@ export default function App() {
             const loc = await api.reverseGeocode(coords.latitude, coords.longitude);
             if (loc?.displayName) {
               displayName = loc.displayName;
-              setSearchLocation({
-                name: loc.displayName,
-                latitude: coords.latitude,
-                longitude: coords.longitude,
-                source: 'user-selected',
-              });
             }
           } catch {}
+          setSearchLocation({
+            name: displayName,
+            latitude: coords.latitude,
+            longitude: coords.longitude,
+            source: 'detected',
+          });
           resolve({ ...coords, displayName });
         },
         () => resolve(null),
@@ -196,10 +204,11 @@ export default function App() {
     latestRequestIdRef.current = reqId;
 
     try {
-      const coordsToSend = coordsOverride || {
-        latitude: searchLocation.latitude,
-        longitude: searchLocation.longitude,
-      };
+      const coordsToSend = coordsOverride || (
+        (currentUserGps && searchLocation.source !== 'user-selected')
+          ? { latitude: currentUserGps.latitude, longitude: currentUserGps.longitude }
+          : { latitude: searchLocation.latitude, longitude: searchLocation.longitude }
+      );
       const locationNameToSend = locationNameOverride || searchLocation.name;
 
       const response = await api.search(query, coordsToSend, locationNameToSend, reqId);
