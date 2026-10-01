@@ -111,4 +111,50 @@ export const api = {
     if (!res.ok) return { displayName: 'Current Location', city: 'Local Area', area: 'Current Area' };
     return res.json();
   },
+
+  /**
+   * Fast IP-based geolocation fallback when browser GPS is blocked/unavailable
+   */
+  async detectLocationByIP(): Promise<{ latitude: number; longitude: number; displayName: string; city: string }> {
+    try {
+      const res = await fetch('https://ipwho.is/');
+      if (res.ok) {
+        const data = await res.json();
+        if (data.success && typeof data.latitude === 'number' && typeof data.longitude === 'number') {
+          const city = data.city || data.region || 'Local Area';
+          const displayName = `${city}, ${data.region || ''}, ${data.country || ''}`.replace(/,\s*,/g, ',').trim();
+          return {
+            latitude: data.latitude,
+            longitude: data.longitude,
+            displayName,
+            city,
+          };
+        }
+      }
+    } catch {}
+
+    try {
+      const res2 = await fetch('https://ipapi.co/json/');
+      if (res2.ok) {
+        const data2 = await res2.json();
+        if (typeof data2.latitude === 'number' && typeof data2.longitude === 'number') {
+          const city = data2.city || data2.region || 'Local Area';
+          const displayName = `${city}, ${data2.region || ''}, ${data2.country_name || ''}`.replace(/,\s*,/g, ',').trim();
+          return {
+            latitude: data2.latitude,
+            longitude: data2.longitude,
+            displayName,
+            city,
+          };
+        }
+      }
+    } catch {}
+
+    return {
+      latitude: 17.385044,
+      longitude: 78.486671,
+      displayName: 'Hyderabad, Telangana, India',
+      city: 'Hyderabad',
+    };
+  },
 };

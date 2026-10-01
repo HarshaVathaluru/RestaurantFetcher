@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { MapPin, Navigation, Search, X, Check, Compass, Loader2, Globe, Building2 } from 'lucide-react';
+import { api } from '../../services/api';
 
 export interface LocationOption {
   name: string;
@@ -157,14 +158,26 @@ export const LocationModal: React.FC<LocationModalProps> = ({
       if (coords) {
         onSelectLocation(coords.displayName || 'Current GPS Location', coords);
         onClose();
-      } else {
-        setGpsError('GPS location access denied or unavailable. Please pick a location below.');
+        setIsDetecting(false);
+        return;
       }
     } catch {
-      setGpsError('Could not retrieve GPS coordinates. Please select from popular areas.');
-    } finally {
-      setIsDetecting(false);
+      // Browser GPS denied or unavailable
     }
+
+    // Automatic network IP geolocation fallback
+    try {
+      const netLoc = await api.detectLocationByIP();
+      if (netLoc && netLoc.latitude && netLoc.longitude) {
+        onSelectLocation(netLoc.displayName, { latitude: netLoc.latitude, longitude: netLoc.longitude });
+        onClose();
+        setIsDetecting(false);
+        return;
+      }
+    } catch {}
+
+    setGpsError('GPS location access denied in browser. Click the lock 🔒 icon in your browser address bar to allow location.');
+    setIsDetecting(false);
   };
 
   const handleSelect = (name: string, area: string, coords: { latitude: number; longitude: number }) => {

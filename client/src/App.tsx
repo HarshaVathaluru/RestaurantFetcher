@@ -108,7 +108,27 @@ export default function App() {
 
       navigator.geolocation.getCurrentPosition(
         handlePositionUpdate,
-        () => setCurrentUserGps(null),
+        async (err) => {
+          console.warn('Browser GPS denied or unavailable, auto-detecting via network IP:', err);
+          try {
+            const netLoc = await api.detectLocationByIP();
+            if (netLoc) {
+              setCurrentUserGps({
+                latitude: netLoc.latitude,
+                longitude: netLoc.longitude,
+                source: 'gps',
+              });
+              setSearchLocation(prev => ({
+                name: prev.source === 'user-selected' ? prev.name : netLoc.displayName,
+                latitude: prev.source === 'user-selected' ? prev.latitude : netLoc.latitude,
+                longitude: prev.source === 'user-selected' ? prev.longitude : netLoc.longitude,
+                source: prev.source,
+              }));
+            }
+          } catch (e) {
+            console.warn('Network location detection failed:', e);
+          }
+        },
         { enableHighAccuracy: true, timeout: 8000 }
       );
 
@@ -184,7 +204,32 @@ export default function App() {
           });
           resolve({ ...coords, displayName });
         },
-        () => resolve(null),
+        async (err) => {
+          console.warn('Browser GPS prompt error, falling back to IP geolocation:', err);
+          try {
+            const netLoc = await api.detectLocationByIP();
+            if (netLoc) {
+              setCurrentUserGps({
+                latitude: netLoc.latitude,
+                longitude: netLoc.longitude,
+                source: 'gps',
+              });
+              setSearchLocation({
+                name: netLoc.displayName,
+                latitude: netLoc.latitude,
+                longitude: netLoc.longitude,
+                source: 'detected',
+              });
+              resolve({
+                latitude: netLoc.latitude,
+                longitude: netLoc.longitude,
+                displayName: netLoc.displayName,
+              });
+              return;
+            }
+          } catch {}
+          resolve(null);
+        },
         { timeout: 7000 }
       );
     });
