@@ -1,5 +1,5 @@
 import { NormalizedPlace, SearchIntent } from '../../models/place';
-import { LocationResolver, ResolvedCoordinates } from '../location/locationResolver';
+import { LocationResolver, ResolvedCoordinates, generateDeliveryLinks } from '../location/locationResolver';
 import { PlaceClassifier } from './placeClassifier';
 import { PlaceProvider, PlaceSearchParams } from './placeProvider';
 
@@ -180,26 +180,28 @@ export class GooglePlacesProvider implements PlaceProvider {
     const mainImage = photos[0] || fallbackImage;
 
     // Price Level mapping
+    const symbol = userCoords?.currencySymbol || '$';
+    const isINR = userCoords?.currency === 'INR';
     let priceLevel = 2;
-    let avgCost = 500;
-    let priceText = '₹500 per person';
+    let avgCost = isINR ? 500 : 25;
+    let priceText = `${symbol}${avgCost} per person`;
 
     if (place.priceLevel === 'PRICE_LEVEL_INEXPENSIVE') {
       priceLevel = 1;
-      avgCost = 250;
-      priceText = '₹250 per person';
+      avgCost = isINR ? 250 : 15;
+      priceText = `${symbol}${avgCost} per person`;
     } else if (place.priceLevel === 'PRICE_LEVEL_MODERATE') {
       priceLevel = 2;
-      avgCost = 600;
-      priceText = '₹600 per person';
+      avgCost = isINR ? 600 : 35;
+      priceText = `${symbol}${avgCost} per person`;
     } else if (place.priceLevel === 'PRICE_LEVEL_EXPENSIVE') {
       priceLevel = 3;
-      avgCost = 1200;
-      priceText = '₹1,200 per person';
+      avgCost = isINR ? 1200 : 75;
+      priceText = `${symbol}${avgCost} per person`;
     } else if (place.priceLevel === 'PRICE_LEVEL_VERY_EXPENSIVE') {
       priceLevel = 4;
-      avgCost = 2500;
-      priceText = '₹2,500+ per person';
+      avgCost = isINR ? 2500 : 150;
+      priceText = `${symbol}${avgCost}+ per person`;
     }
 
     // Google Reviews
@@ -235,7 +237,8 @@ export class GooglePlacesProvider implements PlaceProvider {
       priceLevel,
       priceEstimatedText: priceText,
       averageCostPerPerson: avgCost,
-      currency: 'INR',
+      currency: userCoords?.currency || 'USD',
+      currencySymbol: symbol,
       address,
       distance,
       latitude: lat,
@@ -256,12 +259,7 @@ export class GooglePlacesProvider implements PlaceProvider {
       openingHours,
       website: place.websiteUri,
       phone: place.nationalPhoneNumber || place.internationalPhoneNumber,
-      links: {
-        googleMaps: place.googleMapsUri || `https://maps.google.com/?q=${encodeURIComponent(name + ' ' + address)}`,
-        swiggy: `https://www.swiggy.com/search?query=${encodeURIComponent(name)}`,
-        zomato: `https://www.zomato.com/search?q=${encodeURIComponent(name)}`,
-        website: place.websiteUri,
-      },
+      links: generateDeliveryLinks(name, address, userCoords?.deliveryPlatforms || ['ubereats', 'doordash'], place.websiteUri) as any,
       directionsUrl: place.googleMapsUri || `https://maps.google.com/?q=${lat},${lon}`,
       description: place.editorialSummary?.text || `${name} in ${address}`,
       reviews,

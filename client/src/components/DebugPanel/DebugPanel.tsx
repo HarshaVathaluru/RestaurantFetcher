@@ -142,7 +142,9 @@ export const DebugPanel: React.FC<DebugPanelProps> = ({
               <div className="flex justify-between">
                 <span className="text-slate-400">Max Budget:</span>
                 <span className="text-white">
-                  {searchResult.intent.budget?.maximum ? `₹${searchResult.intent.budget.maximum}` : 'None'}
+                  {searchResult.intent.budget?.maximum
+                    ? `${searchResult.intent.budget.currency === 'USD' ? '$' : searchResult.intent.budget.currency === 'GBP' ? '£' : searchResult.intent.budget.currency === 'EUR' ? '€' : searchResult.intent.budget.currency === 'AED' ? 'AED ' : searchResult.intent.budget.currency === 'INR' ? '₹' : (searchResult.intent.budget.currency || '')}${searchResult.intent.budget.maximum}`
+                    : 'None'}
                 </span>
               </div>
               <div className="flex justify-between">

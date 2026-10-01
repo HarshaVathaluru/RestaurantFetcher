@@ -1,5 +1,5 @@
 import { NormalizedPlace, SearchIntent } from '../../models/place';
-import { LocationResolver, ResolvedCoordinates } from '../location/locationResolver';
+import { LocationResolver, ResolvedCoordinates, generateDeliveryLinks } from '../location/locationResolver';
 import { PlaceClassifier } from './placeClassifier';
 import { GooglePlacesProvider } from './googlePlacesProvider';
 import { MapboxPlacesProvider } from './mapboxPlacesProvider';
@@ -262,9 +262,10 @@ export class CompositePlaceProvider implements PlaceProvider {
             rating: parseFloat((4.1 + (Math.abs(Math.sin(lat * 50)) * 0.6)).toFixed(1)),
             reviewCount: Math.round(180 + Math.abs(Math.cos(lon * 40)) * 950),
             priceLevel: profile.priceLevel,
-            priceEstimatedText: `₹${avgCost} per person`,
+            priceEstimatedText: `${coords.currencySymbol || '$'}${avgCost} per person`,
             averageCostPerPerson: avgCost,
-            currency: 'INR',
+            currency: coords.currency || 'USD',
+            currencySymbol: coords.currencySymbol || '$',
             address,
             distance,
             latitude: lat,
@@ -279,11 +280,7 @@ export class CompositePlaceProvider implements PlaceProvider {
             alcohol: profile.alcohol,
             openNow: true,
             openingHours: '11:00 AM – 11:00 PM',
-            links: {
-              googleMaps: `https://maps.google.com/?q=${encodeURIComponent(name + ' ' + address)}`,
-              swiggy: `https://www.swiggy.com/search?query=${encodeURIComponent(name)}`,
-              zomato: `https://www.zomato.com/search?q=${encodeURIComponent(name)}`,
-            },
+            links: generateDeliveryLinks(name, address, coords.deliveryPlatforms || ['ubereats', 'doordash']) as any,
             directionsUrl: `https://maps.google.com/?q=${lat},${lon}`,
           };
         })

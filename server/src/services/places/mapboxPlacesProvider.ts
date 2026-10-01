@@ -1,5 +1,5 @@
 import { NormalizedPlace, SearchIntent } from '../../models/place';
-import { LocationResolver, ResolvedCoordinates } from '../location/locationResolver';
+import { LocationResolver, ResolvedCoordinates, generateDeliveryLinks } from '../location/locationResolver';
 import { PlaceClassifier } from './placeClassifier';
 import { PlaceProvider, PlaceSearchParams } from './placeProvider';
 import { getDynamicFoodImages } from './foodImageGallery';
@@ -88,9 +88,10 @@ export class MapboxPlacesProvider implements PlaceProvider {
           rating,
           reviewCount,
           priceLevel: profile.priceLevel,
-          priceEstimatedText: `₹${avgCost} per person`,
+          priceEstimatedText: `${coords.currencySymbol || '$'}${avgCost} per person`,
           averageCostPerPerson: avgCost,
-          currency: 'INR',
+          currency: coords.currency || 'USD',
+          currencySymbol: coords.currencySymbol || '$',
           address,
           distance,
           latitude: lat,
@@ -106,11 +107,7 @@ export class MapboxPlacesProvider implements PlaceProvider {
           openNow: true,
           openingHours: weekdayHours,
           phone,
-          links: {
-            googleMaps: `https://maps.google.com/?q=${encodeURIComponent(name + ' ' + address)}`,
-            swiggy: `https://www.swiggy.com/search?query=${encodeURIComponent(name)}`,
-            zomato: `https://www.zomato.com/search?q=${encodeURIComponent(name)}`,
-          },
+          links: generateDeliveryLinks(name, address, coords.deliveryPlatforms || ['ubereats', 'doordash']) as any,
           directionsUrl: `https://maps.google.com/?q=${lat},${lon}`,
           description: `${name} located at ${address}. Known for authentic ${profile.cuisine.join(', ')} specialities.`,
         });

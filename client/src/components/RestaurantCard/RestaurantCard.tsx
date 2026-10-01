@@ -72,6 +72,122 @@ export const RestaurantCard: React.FC<RestaurantCardProps> = ({
   const primaryItemName = (typeof displayItem === 'string' ? displayItem : displayItem?.name) || (hasSearchedMatch ? searchedName : 'House Specialty');
   const primaryItemPrice = (typeof displayItem === 'object' && displayItem ? displayItem?.price : undefined) || Math.round((place.averageCostPerPerson || 350) * 0.75) || 320;
 
+  // Dynamic currency symbol: detects and formats local currency seamlessly
+  const symbol = place.currencySymbol || (
+    place.currency === 'USD' ? '$' :
+    place.currency === 'GBP' ? '£' :
+    place.currency === 'EUR' ? '€' :
+    place.currency === 'AED' ? 'AED ' :
+    place.currency === 'SGD' ? 'S$' :
+    place.currency === 'JPY' ? '¥' :
+    place.currency === 'CAD' ? 'CA$' :
+    place.currency === 'AUD' ? 'A$' :
+    place.currency === 'INR' ? '₹' :
+    (place.currency ? `${place.currency} ` : '$')
+  );
+
+  // Dynamic available delivery platforms for the current country
+  const availablePlatformLinks: Array<{
+    key: string;
+    name: string;
+    url: string;
+    icon: any;
+    colorClass: string;
+  }> = [];
+
+  if (place.links) {
+    if (place.links.ubereats) {
+      availablePlatformLinks.push({
+        key: 'ubereats',
+        name: 'Uber Eats',
+        url: place.links.ubereats,
+        icon: Bike,
+        colorClass: 'bg-emerald-500/10 hover:bg-emerald-500/20 border-emerald-500/30 text-emerald-400 hover:text-emerald-300',
+      });
+    }
+    if (place.links.doordash) {
+      availablePlatformLinks.push({
+        key: 'doordash',
+        name: 'DoorDash',
+        url: place.links.doordash,
+        icon: Bike,
+        colorClass: 'bg-red-500/10 hover:bg-red-500/20 border-red-500/30 text-red-400 hover:text-red-300',
+      });
+    }
+    if (place.links.deliveroo) {
+      availablePlatformLinks.push({
+        key: 'deliveroo',
+        name: 'Deliveroo',
+        url: place.links.deliveroo,
+        icon: Bike,
+        colorClass: 'bg-teal-500/10 hover:bg-teal-500/20 border-teal-500/30 text-teal-400 hover:text-teal-300',
+      });
+    }
+    if (place.links.talabat) {
+      availablePlatformLinks.push({
+        key: 'talabat',
+        name: 'Talabat',
+        url: place.links.talabat,
+        icon: Bike,
+        colorClass: 'bg-orange-500/10 hover:bg-orange-500/20 border-orange-500/30 text-orange-400 hover:text-orange-300',
+      });
+    }
+    if (place.links.swiggy) {
+      availablePlatformLinks.push({
+        key: 'swiggy',
+        name: 'Swiggy',
+        url: place.links.swiggy,
+        icon: Bike,
+        colorClass: 'bg-orange-500/10 hover:bg-orange-500/20 border-orange-500/30 text-orange-400 hover:text-orange-300',
+      });
+    }
+    if (place.links.zomato) {
+      availablePlatformLinks.push({
+        key: 'zomato',
+        name: 'Zomato',
+        url: place.links.zomato,
+        icon: UtensilsCrossed,
+        colorClass: 'bg-red-500/10 hover:bg-red-500/20 border-red-500/30 text-red-400 hover:text-red-300',
+      });
+    }
+    if (place.links.grubhub) {
+      availablePlatformLinks.push({
+        key: 'grubhub',
+        name: 'Grubhub',
+        url: place.links.grubhub,
+        icon: UtensilsCrossed,
+        colorClass: 'bg-orange-500/10 hover:bg-orange-500/20 border-orange-500/30 text-orange-400 hover:text-orange-300',
+      });
+    }
+    if (place.links.grabfood) {
+      availablePlatformLinks.push({
+        key: 'grabfood',
+        name: 'GrabFood',
+        url: place.links.grabfood,
+        icon: Bike,
+        colorClass: 'bg-emerald-500/10 hover:bg-emerald-500/20 border-emerald-500/30 text-emerald-400 hover:text-emerald-300',
+      });
+    }
+    if (place.links.foodpanda) {
+      availablePlatformLinks.push({
+        key: 'foodpanda',
+        name: 'Foodpanda',
+        url: place.links.foodpanda,
+        icon: Bike,
+        colorClass: 'bg-pink-500/10 hover:bg-pink-500/20 border-pink-500/30 text-pink-400 hover:text-pink-300',
+      });
+    }
+    if (place.links.justeat) {
+      availablePlatformLinks.push({
+        key: 'justeat',
+        name: 'Just Eat',
+        url: place.links.justeat,
+        icon: Bike,
+        colorClass: 'bg-orange-500/10 hover:bg-orange-500/20 border-orange-500/30 text-orange-400 hover:text-orange-300',
+      });
+    }
+  }
+
   // Multi-platform delivery options: Swiggy, Zomato, Magicpin
   const rawDeliveryList: Array<{
     platform: 'swiggy' | 'zomato' | 'magicpin';
@@ -247,7 +363,7 @@ export const RestaurantCard: React.FC<RestaurantCardProps> = ({
         <div className="absolute top-3 left-3 flex flex-wrap gap-1.5">
           {canOrderOnline && bestOption && maxSavings > 0 && (
             <span className="px-2.5 py-1 rounded-full bg-slate-950/85 border border-amber-500/40 text-amber-300 text-[10px] font-bold backdrop-blur-md flex items-center gap-1 shadow-md">
-              <Tag className="w-3 h-3 text-amber-400" /> Save ₹{maxSavings} on {bestOption.name}
+              <Tag className="w-3 h-3 text-amber-400" /> Save {symbol}{maxSavings} on {bestOption.name}
             </span>
           )}
           {canBookTable && !canOrderOnline && (
@@ -318,7 +434,7 @@ export const RestaurantCard: React.FC<RestaurantCardProps> = ({
                   🍛 {primaryItemName}
                 </span>
                 <span className="text-amber-300 font-black text-base">
-                  ₹{primaryItemPrice}
+                  {symbol}{primaryItemPrice}
                 </span>
               </div>
               <div className="mt-1 flex items-center justify-between text-xs">
@@ -344,7 +460,7 @@ export const RestaurantCard: React.FC<RestaurantCardProps> = ({
                   </span>
                   {displayItem.price && (
                     <span className="text-amber-400 font-bold text-sm">
-                      ₹{displayItem.price}
+                      {symbol}{displayItem.price}
                     </span>
                   )}
                 </div>
@@ -379,42 +495,33 @@ export const RestaurantCard: React.FC<RestaurantCardProps> = ({
                   Dine-In Menu Price
                 </span>
                 <span className="text-amber-300 font-black text-sm">
-                  {primaryItemPrice ? `₹${primaryItemPrice}` : place.priceEstimatedText}
+                  {primaryItemPrice ? `${symbol}${primaryItemPrice}` : place.priceEstimatedText}
                 </span>
               </div>
-              {(place.links?.swiggy || place.links?.zomato) && (
+              {availablePlatformLinks.length > 0 && (
                 <div className="pt-2 border-t border-slate-800/80">
                   <div className="text-[10px] text-slate-400 mb-2 flex items-center justify-between">
                     <span>Live Online Delivery</span>
                     <span className="text-[9px] text-slate-500">View real-time prices on app</span>
                   </div>
-                  <div className="grid grid-cols-2 gap-2">
-                    {place.links?.swiggy && (
-                      <a
-                        href={place.links.swiggy}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        onClick={(e) => e.stopPropagation()}
-                        className="py-2 px-2.5 rounded-xl bg-orange-500/10 hover:bg-orange-500/20 border border-orange-500/30 text-orange-400 hover:text-orange-300 text-xs font-bold flex items-center justify-center gap-1.5 transition-colors shadow-sm"
-                      >
-                        <Bike className="w-3.5 h-3.5" />
-                        <span>Swiggy</span>
-                        <ExternalLink className="w-3 h-3 text-orange-400/70" />
-                      </a>
-                    )}
-                    {place.links?.zomato && (
-                      <a
-                        href={place.links.zomato}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        onClick={(e) => e.stopPropagation()}
-                        className="py-2 px-2.5 rounded-xl bg-red-500/10 hover:bg-red-500/20 border border-red-500/30 text-red-400 hover:text-red-300 text-xs font-bold flex items-center justify-center gap-1.5 transition-colors shadow-sm"
-                      >
-                        <UtensilsCrossed className="w-3.5 h-3.5" />
-                        <span>Zomato</span>
-                        <ExternalLink className="w-3 h-3 text-red-400/70" />
-                      </a>
-                    )}
+                  <div className={`grid ${availablePlatformLinks.length === 1 ? 'grid-cols-1' : 'grid-cols-2'} gap-2`}>
+                    {availablePlatformLinks.slice(0, 2).map(plat => {
+                      const IconComponent = plat.icon;
+                      return (
+                        <a
+                          key={plat.key}
+                          href={plat.url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          onClick={(e) => e.stopPropagation()}
+                          className={`py-2 px-2.5 rounded-xl border text-xs font-bold flex items-center justify-center gap-1.5 transition-colors shadow-sm ${plat.colorClass}`}
+                        >
+                          <IconComponent className="w-3.5 h-3.5" />
+                          <span>{plat.name}</span>
+                          <ExternalLink className="w-3 h-3 opacity-70" />
+                        </a>
+                      );
+                    })}
                   </div>
                 </div>
               )}
@@ -489,10 +596,10 @@ export const RestaurantCard: React.FC<RestaurantCardProps> = ({
                         <Tag className="w-3.5 h-3.5" /> 🏷 Best Online Price
                       </span>
                       <span className="text-white font-extrabold">
-                        {bestOption.name} (₹{bestOption.finalEstimate})
+                        {bestOption.name} ({symbol}{bestOption.finalEstimate})
                         {maxSavings > 0 && (
                           <span className="text-emerald-400 font-bold ml-1.5 text-[10px]">
-                            • Save ₹{maxSavings}
+                            • Save {symbol}{maxSavings}
                           </span>
                         )}
                       </span>
@@ -524,21 +631,21 @@ export const RestaurantCard: React.FC<RestaurantCardProps> = ({
                           <div className="space-y-1 my-1 text-xs">
                             <div className="flex justify-between items-center text-[11px]">
                               <span className="text-slate-400">Item price</span>
-                              <span className="text-white font-semibold">₹{opt.itemPrice}</span>
+                              <span className="text-white font-semibold">{symbol}{opt.itemPrice}</span>
                             </div>
                             <div className="flex justify-between items-center text-[10px]">
                               <span className="text-slate-400 truncate max-w-[110px]">Delivery ({opt.deliveryTime})</span>
-                              <span className="text-slate-300 shrink-0">₹{opt.deliveryFee}</span>
+                              <span className="text-slate-300 shrink-0">{symbol}{opt.deliveryFee}</span>
                             </div>
                             {opt.discount > 0 && (
                               <div className="flex justify-between items-center text-[10px]">
                                 <span className="text-emerald-400 font-medium">Coupon/Offer</span>
-                                <span className="text-emerald-400 font-bold shrink-0">-₹{opt.discount}</span>
+                                <span className="text-emerald-400 font-bold shrink-0">-{symbol}{opt.discount}</span>
                               </div>
                             )}
                             <div className="pt-1.5 border-t border-slate-800/80 flex justify-between items-center">
                               <span className="text-[10px] text-slate-400 uppercase font-bold tracking-wider">Total</span>
-                              <span className="text-white font-black text-sm">₹{opt.finalEstimate}</span>
+                              <span className="text-white font-black text-sm">{symbol}{opt.finalEstimate}</span>
                             </div>
                           </div>
                         </div>

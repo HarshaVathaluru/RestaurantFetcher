@@ -49,6 +49,7 @@ export interface NormalizedPlace {
   priceEstimatedText: string;
   averageCostPerPerson: number;
   currency: string;
+  currencySymbol?: string;
   address: string;
   distance?: number;
   latitude: number;
@@ -84,8 +85,17 @@ export interface NormalizedPlace {
     zomato?: string;
     magicpin?: string;
     eatsure?: string;
+    ubereats?: string;
+    doordash?: string;
+    grubhub?: string;
+    deliveroo?: string;
+    justeat?: string;
+    talabat?: string;
+    grabfood?: string;
+    foodpanda?: string;
     website?: string;
     googleMaps: string;
+    [key: string]: string | undefined;
   };
   deliveryComparison?: {
     swiggy?: {

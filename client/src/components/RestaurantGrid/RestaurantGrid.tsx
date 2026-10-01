@@ -83,7 +83,7 @@ export const RestaurantGrid: React.FC<RestaurantGridProps> = ({
               ) : null}
               {intent.budget?.maximum ? (
                 <span className="px-2 py-0.5 rounded-md bg-emerald-500/10 text-emerald-300 font-medium">
-                  Budget ≤ ₹{intent.budget.maximum}
+                  Budget ≤ {intent.budget.currency === 'USD' ? '$' : intent.budget.currency === 'GBP' ? '£' : intent.budget.currency === 'EUR' ? '€' : intent.budget.currency === 'AED' ? 'AED ' : intent.budget.currency === 'INR' ? '₹' : (intent.budget.currency || '')}{intent.budget.maximum}
                 </span>
               ) : null}
               {intent.alcohol?.required && (

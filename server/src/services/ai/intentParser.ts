@@ -43,7 +43,7 @@ CRITICAL RULES:
 3. Rating:
    - "above 4.2", "4.5+", "highly rated" -> rating: { minimum: 4.2 }
 4. Budget:
-   - "under 500", "under ₹1000", "cheap", "affordable" -> budget: { maximum: number, currency: "INR" }
+   - "under 500", "under $40", "under £30", "cheap", "affordable" -> budget: { maximum: number, currency: "USD" | "GBP" | "EUR" | "AED" | "INR" }
 5. Dietary:
    - "veg", "vegetarian", "vegan", "halal", "gluten-free" -> dietary: ["vegetarian"]
 6. Atmosphere & Features:
@@ -71,7 +71,7 @@ Return valid JSON conforming to this schema:
   "foodItems": [{"name": "string", "quantity": "string"}],
   "dietary": string[],
   "rating": { "minimum": number },
-  "budget": { "maximum": number, "currency": "INR" },
+  "budget": { "maximum": number, "currency": string },
   "audience": string[],
   "atmosphere": string[],
   "features": string[],
@@ -338,11 +338,20 @@ Return the updated valid SearchIntent JSON.`;
 
     // Budget
     let maxBudget: number | undefined;
-    const budgetMatch = q.match(/(?:under|below|less than|within|max)\s*(?:rs\.?|inr|₹)?\s*(\d+)/i) || q.match(/(\d+)\s*(?:rs|rupees|per person)/i);
+    let detectedCurrency: string | undefined = undefined;
+    if (/\$|usd|dollars/i.test(q)) detectedCurrency = 'USD';
+    else if (/£|gbp|pounds/i.test(q)) detectedCurrency = 'GBP';
+    else if (/€|eur|euros/i.test(q)) detectedCurrency = 'EUR';
+    else if (/aed|dirhams/i.test(q)) detectedCurrency = 'AED';
+    else if (/₹|rs\.?|inr|rupees/i.test(q)) detectedCurrency = 'INR';
+
+    const budgetMatch = q.match(/(?:under|below|less than|within|max)\s*(?:rs\.?|inr|₹|\$|£|€|aed)?\s*(\d+)/i) ||
+                        q.match(/(?:\$|£|€|₹)\s*(\d+)/i) ||
+                        q.match(/(\d+)\s*(?:rs|rupees|dollars|pounds|euros|per person)/i);
     if (budgetMatch) {
       maxBudget = parseInt(budgetMatch[1], 10);
     } else if (/cheap|budget|affordable/i.test(q)) {
-      maxBudget = 500;
+      maxBudget = detectedCurrency === 'USD' ? 25 : 500;
     }
 
     // Atmosphere
@@ -384,7 +393,7 @@ Return the updated valid SearchIntent JSON.`;
       foodItems,
       dietary,
       rating: minimumRating > 0 ? { minimum: minimumRating } : undefined,
-      budget: maxBudget ? { maximum: maxBudget, currency: 'INR' } : undefined,
+      budget: maxBudget ? { maximum: maxBudget, currency: detectedCurrency } : undefined,
       audience: detectedAudience,
       atmosphere: detectedAtmospheres,
       features: detectedFeatures,
@@ -427,11 +436,20 @@ Return the updated valid SearchIntent JSON.`;
     if (!updated.alcohol) updated.alcohol = { required: false, beer: false, wine: false, cocktails: false };
 
     // 1. Budget refinement
-    const budgetMatch = t.match(/(?:under|below|max|within|budget|less than)\s*(?:rs\.?|inr|₹)?\s*(\d+)/i) || t.match(/(?:≤|<=)\s*(?:rs\.?|inr|₹)?\s*(\d+)/i);
+    let refineCurrency = updated.budget?.currency;
+    if (/\$|usd|dollars/i.test(t)) refineCurrency = 'USD';
+    else if (/£|gbp|pounds/i.test(t)) refineCurrency = 'GBP';
+    else if (/€|eur|euros/i.test(t)) refineCurrency = 'EUR';
+    else if (/aed|dirhams/i.test(t)) refineCurrency = 'AED';
+    else if (/₹|rs\.?|inr|rupees/i.test(t)) refineCurrency = 'INR';
+
+    const budgetMatch = t.match(/(?:under|below|max|within|budget|less than)\s*(?:rs\.?|inr|₹|\$|£|€|aed)?\s*(\d+)/i) ||
+                        t.match(/(?:≤|<=)\s*(?:rs\.?|inr|₹|\$|£|€|aed)?\s*(\d+)/i) ||
+                        t.match(/(?:\$|£|€|₹)\s*(\d+)/i);
     if (budgetMatch) {
-      updated.budget = { maximum: parseInt(budgetMatch[1], 10), currency: 'INR' };
+      updated.budget = { maximum: parseInt(budgetMatch[1], 10), currency: refineCurrency };
     } else if (/fine din/i.test(t) && !/remove/i.test(t)) {
-      updated.budget = { maximum: 3000, currency: 'INR' };
+      updated.budget = { maximum: refineCurrency === 'USD' ? 150 : 3000, currency: refineCurrency };
       if (!updated.atmosphere.includes('fine dining')) updated.atmosphere.push('fine dining');
     }
 

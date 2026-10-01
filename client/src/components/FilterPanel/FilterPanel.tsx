@@ -32,7 +32,7 @@ export const FilterPanel: React.FC<FilterPanelProps> = ({
   const handleBudgetChange = (max: number | undefined) => {
     onUpdateFilters({
       ...intent,
-      budget: max ? { maximum: max, currency: 'INR' } : undefined,
+      budget: max ? { maximum: max, currency: intent.budget?.currency } : undefined,
     });
   };
 
@@ -118,27 +118,42 @@ export const FilterPanel: React.FC<FilterPanelProps> = ({
           Budget Ceiling
         </label>
         <div className="grid grid-cols-3 gap-1.5">
-          {[
-            { label: 'Any', val: undefined },
-            { label: '≤ ₹500', val: 500 },
-            { label: '≤ ₹1000', val: 1000 },
-            { label: '≤ ₹1500', val: 1500 },
-            { label: '≤ ₹2500', val: 2500 },
-            { label: 'Fine Dine', val: 4000 },
-          ].map((b, i) => (
-            <button
-              key={i}
-              type="button"
-              onClick={() => handleBudgetChange(b.val)}
-              className={`py-1.5 px-2 text-xs font-semibold rounded-xl border transition-all ${
-                currentMaxBudget === b.val
-                  ? 'bg-amber-500 text-slate-950 border-amber-400 font-bold shadow-sm'
-                  : 'bg-surface-dark text-slate-300 border-surface-border hover:border-slate-700'
-              }`}
-            >
-              {b.label}
-            </button>
-          ))}
+          {(() => {
+            const curr = intent.budget?.currency;
+            const symbol = curr === 'USD' ? '$' : curr === 'GBP' ? '£' : curr === 'EUR' ? '€' : curr === 'AED' ? 'AED ' : curr === 'INR' ? '₹' : (curr ? `${curr} ` : '$');
+            const isINR = curr === 'INR';
+            const options = isINR
+              ? [
+                  { label: 'Any', val: undefined },
+                  { label: '≤ ₹500', val: 500 },
+                  { label: '≤ ₹1000', val: 1000 },
+                  { label: '≤ ₹1500', val: 1500 },
+                  { label: '≤ ₹2500', val: 2500 },
+                  { label: 'Fine Dine', val: 4000 },
+                ]
+              : [
+                  { label: 'Any', val: undefined },
+                  { label: `≤ ${symbol}25`, val: 25 },
+                  { label: `≤ ${symbol}50`, val: 50 },
+                  { label: `≤ ${symbol}75`, val: 75 },
+                  { label: `≤ ${symbol}100`, val: 100 },
+                  { label: 'Fine Dine', val: 200 },
+                ];
+            return options.map((b, i) => (
+              <button
+                key={i}
+                type="button"
+                onClick={() => handleBudgetChange(b.val)}
+                className={`py-1.5 px-2 text-xs font-semibold rounded-xl border transition-all ${
+                  currentMaxBudget === b.val
+                    ? 'bg-amber-500 text-slate-950 border-amber-400 font-bold shadow-sm'
+                    : 'bg-surface-dark text-slate-300 border-surface-border hover:border-slate-700'
+                }`}
+              >
+                {b.label}
+              </button>
+            ));
+          })()}
         </div>
       </div>
 

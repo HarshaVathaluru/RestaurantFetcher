@@ -8,11 +8,11 @@ interface SearchBoxProps {
 
 const SUGGESTIONS = [
   { label: '🍛 Best Mutton Biryani', query: 'Best mutton biryani with high rating' },
-  { label: '🍲 Spicy Biryani under ₹500', query: 'Spicy chicken biryani under ₹500 above 4.2 rating' },
+  { label: '🍕 Authentic Woodfired Pizza', query: 'Authentic woodfired pizza and Italian food' },
   { label: '❤️ Romantic Rooftop', query: 'Romantic rooftop restaurant with cocktails and outdoor seating' },
   { label: '🍻 Pubs & Craft Beer', query: 'Find pubs with craft beer and live music' },
-  { label: '👨‍👩‍👧 Authentic South Indian', query: 'Family restaurant with authentic South Indian food' },
-  { label: '🌱 Pure Vegetarian', query: 'Highly rated pure vegetarian dining under ₹800' },
+  { label: '🍣 Sushi & Asian Cuisine', query: 'Best fresh sushi and Asian dining' },
+  { label: '🌱 Pure Vegetarian', query: 'Highly rated pure vegetarian dining with family seating' },
   { label: '🏆 Best Place for Dinner', query: 'Best restaurant for dinner' },
 ];
 

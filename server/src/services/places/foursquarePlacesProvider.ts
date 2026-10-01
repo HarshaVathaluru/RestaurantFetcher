@@ -1,5 +1,5 @@
 import { NormalizedPlace } from '../../models/place';
-import { LocationResolver } from '../location/locationResolver';
+import { LocationResolver, generateDeliveryLinks } from '../location/locationResolver';
 import { PlaceClassifier } from './placeClassifier';
 import { PlaceProvider, PlaceSearchParams } from './placeProvider';
 import { getDynamicFoodImages } from './foodImageGallery';
@@ -136,9 +136,10 @@ export class FoursquarePlacesProvider implements PlaceProvider {
           rating,
           reviewCount,
           priceLevel: profile.priceLevel,
-          priceEstimatedText: `₹${avgCost} per person`,
+          priceEstimatedText: `${coords.currencySymbol || '$'}${avgCost} per person`,
           averageCostPerPerson: avgCost,
-          currency: 'INR',
+          currency: coords.currency || 'USD',
+          currencySymbol: coords.currencySymbol || '$',
           address: formattedAddress,
           distance,
           latitude: lat,
@@ -155,12 +156,7 @@ export class FoursquarePlacesProvider implements PlaceProvider {
           openingHours: '11:00 AM – 11:00 PM',
           phone,
           website,
-          links: {
-            googleMaps: `https://maps.google.com/?q=${encodeURIComponent(name + ' ' + formattedAddress)}`,
-            swiggy: `https://www.swiggy.com/search?query=${encodeURIComponent(name)}`,
-            zomato: `https://www.zomato.com/search?q=${encodeURIComponent(name)}`,
-            website,
-          },
+          links: generateDeliveryLinks(name, formattedAddress, coords.deliveryPlatforms || ['ubereats', 'doordash'], website) as any,
           directionsUrl: `https://maps.google.com/?q=${lat},${lon}`,
           description: `${name} is an authentic culinary establishment in ${item.location?.locality || coords.displayName}. Renowned for fresh ${cuisines.join(', ')} delicacies.`,
         });

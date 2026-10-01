@@ -2,6 +2,7 @@ import { GoogleGenerativeAI } from '@google/generative-ai';
 import { NormalizedPlace } from '../../models/place';
 import { PlaceProvider, PlaceSearchParams } from './placeProvider';
 import { PhotoService } from './photoService';
+import { generateDeliveryLinks } from '../location/locationResolver';
 
 export class GeminiPlacesProvider implements PlaceProvider {
   private genAI: GoogleGenerativeAI | null = null;
@@ -33,6 +34,10 @@ export class GeminiPlacesProvider implements PlaceProvider {
     const places: NormalizedPlace[] = [];
 
     try {
+      const currencyCode = coords.currency || 'USD';
+      const currencySymbol = coords.currencySymbol || '$';
+      const deliveryPlatforms = coords.deliveryPlatforms || ['ubereats', 'doordash'];
+
       // Prioritize actual location name from reverse geocoding or coordinates, never forcing 'Hyderabad'
       const locationName = coords.displayName || `coordinates (${coords.latitude.toFixed(4)}, ${coords.longitude.toFixed(4)})`;
       const queryItem = intent.foodItems?.[0]?.name || intent.cuisine?.[0] || intent.category?.[0] || 'restaurants';
@@ -49,10 +54,10 @@ Target GPS Center: latitude ${coords.latitude}, longitude ${coords.longitude}.
 Return a JSON array of up to 8 REAL, EXISTING, currently operating restaurants that genuinely exist in this exact locality around coordinates ${coords.latitude}, ${coords.longitude}.
 STRICT INSTRUCTIONS:
 1. ONLY return REAL, famous or popular physical establishments that actually exist near these coordinates. DO NOT invent fake places.
-2. DO NOT return Hyderabad places unless the coordinates are actually in Hyderabad. Respect the target GPS center strictly!
+2. DO NOT return Indian restaurants or Indian rupee prices unless the coordinates are actually in India! Respect the target GPS center strictly!
 3. Provide ACCURATE GPS coordinates (latitude, longitude) close to the specified coordinates.
 4. Provide REAL street addresses with area/locality and landmark.
-5. Provide REALISTIC authentic menu items with accurate current market prices in INR (₹).
+5. Provide REALISTIC authentic menu items with accurate current market prices in local currency ${currencyCode} (${currencySymbol}).
 6. Provide real Google ratings (e.g. 4.1 to 4.7) and realistic review counts (e.g. 1500 to 45000).
 7. Provide real phone numbers and accurate opening hours.
 8. Categorize their authentic cuisine and ambiance accurately.
@@ -68,18 +73,18 @@ JSON Format:
     "rating": 4.4,
     "reviewCount": 18200,
     "priceLevel": 2,
-    "averageCostPerPerson": 350,
-    "priceEstimatedText": "₹350 per person",
-    "cuisines": ["Biryani", "South Indian"],
-    "phone": "+91 40 2763 4490",
+    "averageCostPerPerson": ${currencyCode === 'INR' ? 350 : 25},
+    "priceEstimatedText": "${currencySymbol}${currencyCode === 'INR' ? 350 : 25} per person",
+    "cuisines": ["Italian", "Pizza"],
+    "phone": "+1 555 123 4567",
     "website": "https://...",
     "openingHours": "11:00 AM – 11:30 PM",
     "foodItems": [
-      { "name": "Exact Dish Name", "price": 320, "verified": true },
-      { "name": "Second Dish", "price": 280, "verified": true },
-      { "name": "Third Dish", "price": 180, "verified": true }
+      { "name": "Exact Dish Name", "price": ${currencyCode === 'INR' ? 320 : 22}, "verified": true },
+      { "name": "Second Dish", "price": ${currencyCode === 'INR' ? 280 : 18}, "verified": true },
+      { "name": "Third Dish", "price": ${currencyCode === 'INR' ? 180 : 12}, "verified": true }
     ],
-    "features": ["family-friendly", "ac dining", "takeaway"],
+    "features": ["family-friendly", "dine-in", "takeaway"],
     "atmosphere": ["casual", "authentic"],
     "servesAlcohol": false,
     "description": "Authentic description highlighting why locals and visitors choose this place."
@@ -119,7 +124,8 @@ JSON Format:
           wikiPhotos
         );
 
-        const safePrice = Number(p.averageCostPerPerson) || 350;
+        const defaultAvg = currencyCode === 'INR' ? 350 : 25;
+        const safePrice = Number(p.averageCostPerPerson) || defaultAvg;
         const foodItems = Array.isArray(p.foodItems) ? p.foodItems.map((f: any) => ({
           name: String(f.name || 'Signature Special'),
           price: Number(f.price) || Math.round(safePrice * 0.75),
@@ -134,9 +140,10 @@ JSON Format:
           rating: Number(p.rating) || 4.3,
           reviewCount: Number(p.reviewCount) || 3200,
           priceLevel: Number(p.priceLevel) || 2,
-          priceEstimatedText: p.priceEstimatedText || `₹${safePrice} per person`,
+          priceEstimatedText: p.priceEstimatedText || `${currencySymbol}${safePrice} per person`,
           averageCostPerPerson: safePrice,
-          currency: 'INR',
+          currency: currencyCode,
+          currencySymbol: currencySymbol,
           address: p.address || coords.displayName,
           distance,
           latitude: lat,
@@ -157,12 +164,7 @@ JSON Format:
           openingHours: p.openingHours || '11:00 AM – 11:00 PM',
           phone: p.phone,
           website: p.website,
-          links: {
-            googleMaps: `https://maps.google.com/?q=${encodeURIComponent(p.name + ' ' + (p.address || ''))}`,
-            swiggy: `https://www.swiggy.com/search?query=${encodeURIComponent(p.name)}`,
-            zomato: `https://www.zomato.com/search?q=${encodeURIComponent(p.name)}`,
-            website: p.website,
-          },
+          links: generateDeliveryLinks(p.name, p.address || coords.displayName, deliveryPlatforms, p.website) as any,
           directionsUrl: `https://maps.google.com/?q=${lat},${lon}`,
           description: p.description || `${p.name} is a renowned dining spot in ${locationName}.`,
         });

@@ -464,7 +464,7 @@ export default function App() {
                       ) : null}
                       {searchResult.intent.budget?.maximum ? (
                         <span className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-surface-dark border border-amber-500/30 text-amber-300 shadow-sm">
-                          <span>💰</span> Under ₹{searchResult.intent.budget.maximum}
+                          <span>💰</span> Under {searchResult.intent.budget.currency === 'USD' ? '$' : searchResult.intent.budget.currency === 'GBP' ? '£' : searchResult.intent.budget.currency === 'EUR' ? '€' : searchResult.intent.budget.currency === 'AED' ? 'AED ' : searchResult.intent.budget.currency === 'INR' ? '₹' : (searchResult.intent.budget.currency || '')}{searchResult.intent.budget.maximum}
                           <button type="button" onClick={() => handleRefine(`Remove budget limit`)} className="text-slate-500 hover:text-amber-400 ml-1 text-base cursor-pointer">×</button>
                         </span>
                       ) : null}
@@ -600,7 +600,7 @@ export default function App() {
                           } else if (type === 'rating') {
                             handleRefine('Highest rating');
                           } else if (type === 'cheapest') {
-                            handleRefine('Under ₹500');
+                            handleRefine('Budget friendly affordable');
                           } else if (type === 'openNow') {
                             handleRefine('Open now');
                           } else {
@@ -649,7 +649,7 @@ export default function App() {
                 </div>
                 <h3 className="font-bold text-base text-white mb-1.5">Conversational Context</h3>
                 <p className="text-xs text-slate-400">
-                  Say “only under ₹1000” or “make it outdoor seating” without starting over from scratch.
+                  Say “budget friendly” or “make it outdoor seating” without starting over from scratch.
                 </p>
               </div>
             </div>

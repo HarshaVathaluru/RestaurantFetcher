@@ -58,9 +58,15 @@ export const ConversationalRefinementBar: React.FC<ConversationalRefinementBarPr
   }
 
   if (currentIntent.budget?.maximum) {
+    const symbol = currentIntent.budget?.currency === 'USD' ? '$' :
+      currentIntent.budget?.currency === 'GBP' ? '£' :
+      currentIntent.budget?.currency === 'EUR' ? '€' :
+      currentIntent.budget?.currency === 'AED' ? 'AED ' :
+      currentIntent.budget?.currency === 'INR' ? '₹' :
+      (currentIntent.budget?.currency || '');
     activeFilters.push({
       id: 'budget',
-      label: `💰 Under ₹${currentIntent.budget.maximum}`,
+      label: `💰 Under ${symbol}${currentIntent.budget.maximum}`,
       removeQuery: 'Remove budget limit',
       badgeClass: 'border-amber-500/40 bg-amber-500/10 text-amber-300',
     });
@@ -164,16 +170,13 @@ export const ConversationalRefinementBar: React.FC<ConversationalRefinementBarPr
     chips.push({ label: '⭐ Rating 4.2+', query: 'Rating 4.2+', category: 'rating_budget' });
   }
   if (!currentIntent.budget?.maximum || currentIntent.budget.maximum > 500) {
-    chips.push({ label: '💰 Under ₹500', query: 'Under ₹500', category: 'rating_budget' });
+    chips.push({ label: '💰 Budget-Friendly', query: 'Budget friendly options', category: 'rating_budget' });
   }
   if (!currentIntent.budget?.maximum || currentIntent.budget.maximum > 1000) {
-    chips.push({ label: '💰 Under ₹1000', query: 'Under ₹1000', category: 'rating_budget' });
-  }
-  if (!currentIntent.budget?.maximum || currentIntent.budget.maximum > 1500) {
-    chips.push({ label: '💰 Under ₹1500', query: 'Under ₹1500', category: 'rating_budget' });
+    chips.push({ label: '💵 Moderate Price', query: 'Moderate price range', category: 'rating_budget' });
   }
   if (!currentIntent.atmosphere?.includes('fine dining')) {
-    chips.push({ label: '🥂 Fine Dining', query: 'Fine dining', category: 'rating_budget' });
+    chips.push({ label: '🥂 Fine Dining', query: 'Fine dining luxury', category: 'rating_budget' });
   }
 
   // 2. Dietary

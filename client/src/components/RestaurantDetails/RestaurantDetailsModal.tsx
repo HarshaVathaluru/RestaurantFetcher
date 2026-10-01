@@ -231,6 +231,131 @@ export const RestaurantDetailsModal: React.FC<RestaurantDetailsModalProps> = ({
   const images = place.images && place.images.length > 0 ? place.images : [place.image];
   const mustTryItems = getMustTryItems(place, searchedFoodItems);
 
+  // Dynamic currency symbol
+  const symbol = place.currencySymbol || (
+    place.currency === 'USD' ? '$' :
+    place.currency === 'GBP' ? '£' :
+    place.currency === 'EUR' ? '€' :
+    place.currency === 'AED' ? 'AED ' :
+    place.currency === 'SGD' ? 'S$' :
+    place.currency === 'JPY' ? '¥' :
+    place.currency === 'CAD' ? 'CA$' :
+    place.currency === 'AUD' ? 'A$' :
+    place.currency === 'INR' ? '₹' :
+    (place.currency ? `${place.currency} ` : '$')
+  );
+
+  // Dynamic delivery platforms
+  const availablePlatformLinks: Array<{
+    key: string;
+    name: string;
+    url: string;
+    btnClass: string;
+    label: string;
+  }> = [];
+
+  if (place.links) {
+    if (place.links.ubereats) {
+      availablePlatformLinks.push({
+        key: 'ubereats',
+        name: 'Uber Eats',
+        url: place.links.ubereats,
+        btnClass: 'bg-emerald-600 hover:bg-emerald-500 text-white',
+        label: '🛵 Order on Uber Eats',
+      });
+    }
+    if (place.links.doordash) {
+      availablePlatformLinks.push({
+        key: 'doordash',
+        name: 'DoorDash',
+        url: place.links.doordash,
+        btnClass: 'bg-red-600 hover:bg-red-500 text-white',
+        label: '🛵 Order on DoorDash',
+      });
+    }
+    if (place.links.deliveroo) {
+      availablePlatformLinks.push({
+        key: 'deliveroo',
+        name: 'Deliveroo',
+        url: place.links.deliveroo,
+        btnClass: 'bg-teal-600 hover:bg-teal-500 text-white',
+        label: '🛵 Order on Deliveroo',
+      });
+    }
+    if (place.links.talabat) {
+      availablePlatformLinks.push({
+        key: 'talabat',
+        name: 'Talabat',
+        url: place.links.talabat,
+        btnClass: 'bg-orange-600 hover:bg-orange-500 text-white',
+        label: '🛵 Order on Talabat',
+      });
+    }
+    if (place.links.swiggy) {
+      availablePlatformLinks.push({
+        key: 'swiggy',
+        name: 'Swiggy',
+        url: place.links.swiggy,
+        btnClass: 'bg-orange-600 hover:bg-orange-500 text-white',
+        label: '🛵 Order on Swiggy',
+      });
+    }
+    if (place.links.zomato) {
+      availablePlatformLinks.push({
+        key: 'zomato',
+        name: 'Zomato',
+        url: place.links.zomato,
+        btnClass: 'bg-red-600 hover:bg-red-500 text-white',
+        label: '🍽 Order on Zomato',
+      });
+    }
+    if (place.links.grubhub) {
+      availablePlatformLinks.push({
+        key: 'grubhub',
+        name: 'Grubhub',
+        url: place.links.grubhub,
+        btnClass: 'bg-orange-600 hover:bg-orange-500 text-white',
+        label: '🛵 Order on Grubhub',
+      });
+    }
+    if (place.links.grabfood) {
+      availablePlatformLinks.push({
+        key: 'grabfood',
+        name: 'GrabFood',
+        url: place.links.grabfood,
+        btnClass: 'bg-emerald-600 hover:bg-emerald-500 text-white',
+        label: '🛵 Order on GrabFood',
+      });
+    }
+    if (place.links.foodpanda) {
+      availablePlatformLinks.push({
+        key: 'foodpanda',
+        name: 'Foodpanda',
+        url: place.links.foodpanda,
+        btnClass: 'bg-pink-600 hover:bg-pink-500 text-white',
+        label: '🛵 Order on Foodpanda',
+      });
+    }
+    if (place.links.justeat) {
+      availablePlatformLinks.push({
+        key: 'justeat',
+        name: 'Just Eat',
+        url: place.links.justeat,
+        btnClass: 'bg-orange-600 hover:bg-orange-500 text-white',
+        label: '🛵 Order on Just Eat',
+      });
+    }
+    if (place.links.magicpin) {
+      availablePlatformLinks.push({
+        key: 'magicpin',
+        name: 'Magicpin',
+        url: place.links.magicpin,
+        btnClass: 'bg-blue-600 hover:bg-blue-500 text-white',
+        label: '✨ Save on Magicpin',
+      });
+    }
+  }
+
   return (
     <div
       className="fixed inset-0 z-[1000] flex items-center justify-center p-3 sm:p-6 bg-slate-950/85 backdrop-blur-md overflow-y-auto animate-in fade-in duration-200"
@@ -412,7 +537,7 @@ export const RestaurantDetailsModal: React.FC<RestaurantDetailsModalProps> = ({
 
                       {item.price && (
                         <div className="text-right shrink-0">
-                          <span className="text-amber-400 font-extrabold text-sm">₹{item.price}</span>
+                          <span className="text-amber-400 font-extrabold text-sm">{symbol}{item.price}</span>
                         </div>
                       )}
                     </div>
@@ -526,42 +651,23 @@ export const RestaurantDetailsModal: React.FC<RestaurantDetailsModalProps> = ({
           )}
 
           {/* Order Online & Table Booking */}
-          {(place.links?.swiggy || place.links?.zomato || place.links?.magicpin || (place.tableBooking && place.tableBooking.available)) && (
+          {(availablePlatformLinks.length > 0 || (place.tableBooking && place.tableBooking.available)) && (
             <div className="p-4 sm:p-5 rounded-2xl bg-surface-dark border border-surface-border space-y-3">
               <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider">
                 Order Delivery & Table Booking
               </h4>
               <div className="flex flex-wrap gap-2.5">
-                {place.links?.swiggy && (
+                {availablePlatformLinks.map(plat => (
                   <a
-                    href={place.links.swiggy}
+                    key={plat.key}
+                    href={plat.url}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="py-2.5 px-4 rounded-xl bg-orange-600 hover:bg-orange-500 text-white font-bold text-xs flex items-center gap-1.5 transition-colors shadow-md"
+                    className={`py-2.5 px-4 rounded-xl ${plat.btnClass} font-bold text-xs flex items-center gap-1.5 transition-colors shadow-md`}
                   >
-                    <span>🛵 Order on Swiggy</span>
+                    <span>{plat.label}</span>
                   </a>
-                )}
-                {place.links?.zomato && (
-                  <a
-                    href={place.links.zomato}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="py-2.5 px-4 rounded-xl bg-red-600 hover:bg-red-500 text-white font-bold text-xs flex items-center gap-1.5 transition-colors shadow-md"
-                  >
-                    <span>🍽 Order on Zomato</span>
-                  </a>
-                )}
-                {place.links?.magicpin && (
-                  <a
-                    href={place.links.magicpin}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="py-2.5 px-4 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs flex items-center gap-1.5 transition-colors shadow-md"
-                  >
-                    <span>✨ Save on Magicpin</span>
-                  </a>
-                )}
+                ))}
                 {place.tableBooking && place.tableBooking.available && (
                   <a
                     href={place.tableBooking.directReservationUrl || place.website || place.links?.googleMaps}
